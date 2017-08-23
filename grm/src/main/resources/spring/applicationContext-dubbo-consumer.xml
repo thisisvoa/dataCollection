@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://code.alibabatech.com/schema/dubbo
+        http://code.alibabatech.com/schema/dubbo/dubbo.xsd ">
+
+    <dubbo:registry address="zookeeper://127.0.0.1:2181" />
+
+    <!-- 订阅服务 -->
+    <dubbo:consumer check="false"/>
+
+    <!-- 设备 -->
+    <dubbo:reference id="eamEquipmentService" interface="com.kuyun.eam.rpc.api.EamEquipmentService" mock="true"/>
+
+    <!-- 设备模型 -->
+    <dubbo:reference id="eamEquipmentModelService" interface="com.kuyun.eam.rpc.api.EamEquipmentModelService" mock="true"/>
+
+    <!-- 设备模型参数 -->
+    <dubbo:reference id="eamEquipmentModelPropertiesService" interface="com.kuyun.eam.rpc.api.EamEquipmentModelPropertiesService" mock="true"/>
+
+    <!-- 设备传感器 -->
+    <dubbo:reference id="eamSensorService" interface="com.kuyun.eam.rpc.api.EamSensorService" mock="true"/>
+
+    <!-- 传感器数据 -->
+    <dubbo:reference id="eamSensorDataService" interface="com.kuyun.eam.rpc.api.EamSensorDataService" mock="true"/>
+
+</beans>
