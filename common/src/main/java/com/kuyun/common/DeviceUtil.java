@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -107,9 +108,21 @@ public class DeviceUtil {
             Pair<String, String> pair = CommonUtil.covenrtHexToNumber(allData, dataFormat, bitOrder);
             allData = pair.getValue();
             String data = pair.getKey();
+            data = exchangeData(sensor, data);
             EamSensorData sensorData = createSensorData(sensor.getSensorId(), data);
             eamSensorDataService.insertSelective(sensorData);
         }
+    }
+
+    private String exchangeData(EamSensor sensor, String data){
+        String result = data;
+        if (sensor.getOsh() != null && sensor.getOsl() != null && sensor.getIsh() != null && sensor.getIsl() != null){
+            //Ov = [(Osh - Osl)*(Iv - Isl)/(Ish - Isl)] + Osl
+            BigDecimal m = sensor.getOsh().subtract(sensor.getOsl()).multiply (new BigDecimal(data).subtract(sensor.getIsl()));
+            BigDecimal n = sensor.getIsh().subtract(sensor.getIsl());
+            result = String.valueOf(m.divide(n, 2).add(sensor.getOsl()));
+        }
+        return result;
     }
 
     public List<EamSensor> getSensors(String deviceId) {

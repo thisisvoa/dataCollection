@@ -11,7 +11,7 @@
 
     <dubbo:registry address="zookeeper://127.0.0.1:2181"/>
 
-    <dubbo:protocol name="dubbo" port="20885"/>
+    <dubbo:protocol name="dubbo" port="21885"/>
 
     <bean id="modbusRtuServiceImpl" class="com.kuyun.modbus.rpc.service.impl.ModbusRtuServiceImpl"/>
     <dubbo:service interface="com.kuyun.modbus.rpc.api.ModbusSlaveRtuApiService" ref="modbusRtuServiceImpl" timeout="10000"/>
