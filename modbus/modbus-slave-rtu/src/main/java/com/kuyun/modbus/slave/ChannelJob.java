@@ -353,7 +353,7 @@ public class ChannelJob {
     private static List<EamSensor> buildSensors(EamEquipment device) {
         List<EamSensor> result = new ArrayList<>();
         EamSensor sensor = new EamSensor();
-        sensor.setEquipmentId(device.getEquipmentId());
+        sensor.setEquipmentModelPropertyId(1);
         sensor.setSalveId(1);
         sensor.setFunctionCode(3);
         sensor.setAddress(1);
@@ -362,7 +362,7 @@ public class ChannelJob {
         result.add(sensor);
 
         sensor = new EamSensor();
-        sensor.setEquipmentId(device.getEquipmentId());
+        sensor.setEquipmentModelPropertyId(2);
         sensor.setSalveId(1);
         sensor.setFunctionCode(3);
         sensor.setAddress(2);
@@ -372,7 +372,7 @@ public class ChannelJob {
 
 
         sensor = new EamSensor();
-        sensor.setEquipmentId(device.getEquipmentId());
+        sensor.setEquipmentModelPropertyId(3);
         sensor.setSalveId(1);
         sensor.setFunctionCode(3);
         sensor.setAddress(3);
@@ -381,7 +381,7 @@ public class ChannelJob {
         result.add(sensor);
 
         sensor = new EamSensor();
-        sensor.setEquipmentId(device.getEquipmentId());
+        sensor.setEquipmentModelPropertyId(4);
         sensor.setSalveId(1);
         sensor.setFunctionCode(4);
         sensor.setAddress(4);

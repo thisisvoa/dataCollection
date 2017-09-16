@@ -26,5 +26,6 @@
 
     <!-- 传感器数据 -->
     <dubbo:reference id="eamSensorDataService" interface="com.kuyun.eam.rpc.api.EamSensorDataService" mock="true"/>
+    <dubbo:reference id="eamApiService" interface="com.kuyun.eam.rpc.api.EamApiService" mock="true"/>
 
 </beans>

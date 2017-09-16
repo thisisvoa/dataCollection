@@ -36,7 +36,8 @@ public class GrmUtil {
 
     private String SUFFIX = "\r\n";
 
-    public void readData(String deviceId) throws IOException {
+    public void readData(final String deviceId) throws IOException {
+        _logger.info("deviceId : " + deviceId);
         String sessionId = grmApi.getSessionId(deviceId);
         _logger.info("sessionId : " + sessionId);
 
@@ -56,7 +57,7 @@ public class GrmUtil {
             }else {
                 List<Pair<EamSensor, String>> pairs = buildPairData(sensors, data);
 
-                persistSensorData(pairs);
+                persistSensorData(pairs, deviceId);
             }
 
         }
@@ -77,16 +78,16 @@ public class GrmUtil {
         return result;
     }
 
-    private void persistSensorData(List<Pair<EamSensor, String>> pairs){
+    private void persistSensorData(List<Pair<EamSensor, String>> pairs, String deviceId){
         for(Pair<EamSensor, String> pair : pairs){
-            EamSensorData result = deviceUtil.createSensorData(pair.getKey().getSensorId(), pair.getValue());
-            deviceUtil.getEamSensorDataService().insertSelective(result);
+            EamSensorData result = deviceUtil.createSensorData(deviceId, pair.getKey().getSensorId(), pair.getValue());
+            //deviceUtil.getEamSensorDataService().insertSelective(result);
+            deviceUtil.getEamApiService().handleAlarm(result);
         }
 
     }
 
     private List<EamSensor> getSensors(String deviceId){
-        List<EamSensor> result = new ArrayList<EamSensor>();
         List<EamSensor> sensors = deviceUtil.getSensors(deviceId);
         return sensors.stream().filter(sensor -> READ.getCode().equalsIgnoreCase(sensor.getGrmAction()))     
                                .sorted(comparing(EamSensor::getGrmVariableOrder)).collect(Collectors.toList());
@@ -105,6 +106,7 @@ public class GrmUtil {
     }
 
     public int getGrmPeriod(String deviceId){
+        _logger.info("deviceId="+deviceId);
         int result = 10;
         EamEquipment device = deviceUtil.getDevice(deviceId);
         if (device != null){
