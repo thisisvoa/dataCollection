@@ -37,29 +37,32 @@ public class GrmUtil {
     private String SUFFIX = "\r\n";
 
     public void readData(final String deviceId) throws IOException {
-        _logger.info("deviceId : " + deviceId);
+        _logger.info("before deviceId : " + deviceId);
         String sessionId = grmApi.getSessionId(deviceId);
         _logger.info("sessionId : " + sessionId);
 
         List<EamSensor> sensors = getSensors(deviceId);
 
+        if (sensors != null){
+            String requestData = buildRequestData(sensors);
 
-        String requestData = buildRequestData(sensors);
+            _logger.info("Request Data : " + requestData);
 
-        _logger.info("Request Data : " + requestData);
+            if(!StringUtils.isEmpty(sessionId) && !StringUtils.isEmpty(requestData)){
+                String data = grmApi.getData(sessionId, requestData);
+                _logger.info("Response Data : " + data);
+                _logger.info("after deviceId : " + deviceId);
 
-        if(!StringUtils.isEmpty(sessionId) && !StringUtils.isEmpty(requestData)){
-            String data = grmApi.getData(sessionId, requestData);
-            _logger.info("Response Data : " + data);
+                if (!StringUtils.isEmpty(deviceId)){
+                    if (StringUtils.isEmpty(data)){
+                        grmApi.cleanSessionId(deviceId);
+                    }else {
+                        List<Pair<EamSensor, String>> pairs = buildPairData(sensors, data);
 
-            if (StringUtils.isEmpty(data)){
-                grmApi.cleanSessionId(deviceId);
-            }else {
-                List<Pair<EamSensor, String>> pairs = buildPairData(sensors, data);
-
-                persistSensorData(pairs, deviceId);
+                        persistSensorData(pairs, deviceId);
+                    }
+                }
             }
-
         }
     }
 
@@ -88,9 +91,15 @@ public class GrmUtil {
     }
 
     private List<EamSensor> getSensors(String deviceId){
+        List<EamSensor> result = null;
         List<EamSensor> sensors = deviceUtil.getSensors(deviceId);
-        return sensors.stream().filter(sensor -> READ.getCode().equalsIgnoreCase(sensor.getGrmAction()))     
-                               .sorted(comparing(EamSensor::getGrmVariableOrder)).collect(Collectors.toList());
+
+        if (sensors != null){
+            result = sensors.stream().filter(sensor -> READ.getCode().equalsIgnoreCase(sensor.getGrmAction()))
+                                   .sorted(comparing(EamSensor::getCreateTime)).collect(Collectors.toList());
+        }
+
+        return result;
 
     }
 

@@ -70,7 +70,7 @@ public class GrmApi {
     }
 
     public void cleanSessionId(String deviceId){
-        map.put(deviceId, null);
+        map.remove(deviceId);
     }
 
     private Session getSessionId(String grm, String password) throws IOException {
