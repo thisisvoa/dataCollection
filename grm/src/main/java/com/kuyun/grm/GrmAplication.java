@@ -65,7 +65,9 @@ public class GrmAplication {
     public void pauseJob(String deviceId) throws SchedulerException {
         JobKey jobKey = new JobKey(deviceId, deviceId);
         if (getScheduler().checkExists(jobKey)){
-            getScheduler().pauseJob(jobKey);
+            //getScheduler().pauseJob(jobKey);
+            getScheduler().shutdown();
+            grmUtil.deviceUtil.remove(deviceId);
         }
     }
 

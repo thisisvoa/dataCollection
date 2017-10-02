@@ -106,7 +106,7 @@ public class ChannelJob {
             Tuple tuple = entry.getKey();
             List<EamSensor> sensors = entry.getValue();
             EamSensor sensor = sensors.get(0);
-            int period = sensor.getPeriod();
+            int period = getPeriod();
 
             logger.info("SalveId="+tuple.getSalveId());
             logger.info("FunctionCode="+tuple.getFunctionCode());
@@ -123,10 +123,14 @@ public class ChannelJob {
             }else {
                 for (EamSensor mySensor : sensors) {
                     sleep();
-                    scheduler.scheduleAtFixedRate(() -> sendRequest(mySensor), 1, mySensor.getPeriod(), TimeUnit.SECONDS);
+                    scheduler.scheduleAtFixedRate(() -> sendRequest(mySensor), 1, getPeriod(), TimeUnit.SECONDS);
                 }
             }
         }
+    }
+
+    private int getPeriod(){
+        return getDevice().getModbusRtuPeriod();
     }
 
     private void sleep() {

@@ -124,6 +124,13 @@ public class GrmUtil {
         return result;
     }
 
+    public void setOffline(String deviceId){
+        EamEquipment device = deviceUtil.getDevice(deviceId);
+        if (device != null){
+            deviceUtil.setOffline(device);
+        }
+    }
+
 //    public static void main(String[] args) throws IOException {
 //
 //        ApplicationContext ctx = new ClassPathXmlApplicationContext("classpath:/spring/*.xml");

@@ -27,13 +27,15 @@ public class ReadDataJob implements Job {
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
+        String deviceId = "";
         try {
             JobDataMap data = context.getJobDetail().getJobDataMap();
-            String deviceId = data.getString(DEVICE_ID);
+            deviceId = data.getString(DEVICE_ID);
 
             grmUtil.readData(deviceId);
         } catch (IOException e) {
             _logger.error("GRM Read Data Error : " + e.getMessage());
+            grmUtil.setOffline(deviceId);
         }
     }
 }
