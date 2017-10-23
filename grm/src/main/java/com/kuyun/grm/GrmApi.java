@@ -182,8 +182,8 @@ public class GrmApi {
      * @return
      * @throws IOException
      */
-    public String writeData(String sessionId, String requestData) throws IOException {
-        String result = new String();
+    public String [] writeData(String sessionId, String requestData) throws IOException {
+        String [] result = null;
 
         CloseableHttpClient httpClient = HttpClientBuilder.create().build();
         HttpPost httpPost = new HttpPost(getWriteDataServerUrl(sessionId));
@@ -199,12 +199,12 @@ public class GrmApi {
 
         String data = IOUtils.toString(response.getEntity().getContent());
 
-        String [] rows = data.split("\r\n");
-        if (rows != null){
-            if ("OK".equalsIgnoreCase(rows[0])){
-                result = data;
-            }
-        }
+        result = data.split("\r\n");
+//        if (rows != null){
+//            if ("OK".equalsIgnoreCase(rows[0])){
+//                result = data;
+//            }
+//        }
 
         return result;
     }

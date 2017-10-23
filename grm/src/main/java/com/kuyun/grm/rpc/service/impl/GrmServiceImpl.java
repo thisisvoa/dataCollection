@@ -5,6 +5,8 @@ import com.kuyun.grm.rpc.api.GrmApiService;
 import org.quartz.SchedulerException;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.io.IOException;
+
 /**
  * Created by user on 2017-08-16.
  */
@@ -22,5 +24,10 @@ public class GrmServiceImpl implements GrmApiService{
     @Override
     public void pauseJob(String deviceId) throws SchedulerException {
         grmAplication.pauseJob(deviceId);
+    }
+
+    @Override
+    public String[] writeData(String deviceId, String requestData) throws IOException {
+        return grmAplication.writeData(deviceId, requestData);
     }
 }

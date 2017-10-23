@@ -83,9 +83,7 @@ public class GrmUtil {
 
     private void persistSensorData(List<Pair<EamSensor, String>> pairs, String deviceId){
         for(Pair<EamSensor, String> pair : pairs){
-            EamSensorData result = deviceUtil.createSensorData(deviceId, pair.getKey().getSensorId(), pair.getValue());
-            //deviceUtil.getEamSensorDataService().insertSelective(result);
-            deviceUtil.getEamApiService().handleAlarm(result);
+            deviceUtil.getEamApiService().processData(deviceId, pair.getKey().getSensorId(), pair.getValue());
         }
 
     }
@@ -120,6 +118,7 @@ public class GrmUtil {
         EamEquipment device = deviceUtil.getDevice(deviceId);
         if (device != null){
             result = device.getGrmPeriod();
+            _logger.info("deviceId: {}, Grm Period: {}", deviceId, result);
         }
         return result;
     }
@@ -129,6 +128,27 @@ public class GrmUtil {
         if (device != null){
             deviceUtil.setOffline(device);
         }
+    }
+
+    public void setOnline(String deviceId){
+        EamEquipment device = deviceUtil.getDevice(deviceId);
+        if (device != null){
+            deviceUtil.setOnline(device);
+        }
+    }
+
+    public String [] writeData(final String deviceId, final String requestData) throws IOException {
+        String [] result = null;
+
+        _logger.info("DeviceId : " + deviceId);
+        _logger.info("Write Data : " + requestData);
+        String sessionId = grmApi.getSessionId(deviceId);
+        _logger.info("sessionId : " + sessionId);
+
+        if (!StringUtils.isEmpty(sessionId)){
+            result = grmApi.writeData(sessionId, requestData);
+        }
+        return result;
     }
 
 //    public static void main(String[] args) throws IOException {

@@ -8,6 +8,7 @@ import com.kuyun.eam.dao.model.EamSensor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -32,7 +34,8 @@ public class ChannelJob {
     private EamEquipment device;
 
     private final AtomicInteger transactionId = new AtomicInteger(0);
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(1, new BasicThreadFactory.Builder().namingPattern("modbusRtu-schedule-pool-%d").daemon(true).build());
+
 
 
     public  ChannelJob(Channel channel, EamEquipment device){
@@ -119,6 +122,7 @@ public class ChannelJob {
                     ReadInputRegisters.equals(getFunctionCode(sensor))) {
 
                 sleep();
+
                 scheduler.scheduleAtFixedRate(() -> sendRequest(sensors), 1,  period, TimeUnit.SECONDS);
             }else {
                 for (EamSensor mySensor : sensors) {
@@ -130,7 +134,13 @@ public class ChannelJob {
     }
 
     private int getPeriod(){
-        return getDevice().getModbusRtuPeriod();
+        int result = 20;
+        if (getDevice().getModbusRtuPeriod() != null){
+            result = getDevice().getModbusRtuPeriod();
+        }else {
+            logger.error("Device [ {} ] doesn't setting modbus rtu period, use 20 instead, please inform user to setting", getDevice().getEquipmentId());
+        }
+        return result;
     }
 
     private void sleep() {
@@ -149,7 +159,7 @@ public class ChannelJob {
 
         if (request != null){
             String txId = String.valueOf((short) transactionId.incrementAndGet());
-            logger.info("service Id: {}, transaction ID: {}, sensor function code: {}, address: {},  period: {}, ", getDevice().getEquipmentId(), txId, sensor.getFunctionCode(), sensor.getAddress(), sensor.getPeriod());
+            logger.info("service Id: {}, transaction ID: {}, sensor function code: {}, address: {},  period: {}, ", getDevice().getEquipmentId(), txId, sensor.getFunctionCode(), sensor.getAddress(), getPeriod());
             getChannel().writeAndFlush(new ModbusRtuPayload(txId, sensor.getSalveId().shortValue(), request));
         }
     }
@@ -159,10 +169,15 @@ public class ChannelJob {
         ModbusRequest request = buildRequet(sensor);
         if (request != null){
             String txId = String.valueOf((short) transactionId.incrementAndGet());
-            logger.info("sevice Id: {}, transaction ID: {}, sensor function code: {}, address: {},  period: {}, ", getDevice().getEquipmentId(), txId, sensor.getFunctionCode(), sensor.getAddress(), sensor.getPeriod());
+            logger.info("sevice Id: {}, transaction ID: {}, sensor function code: {}, address: {},  period: {}, ", getDevice().getEquipmentId(), txId, sensor.getFunctionCode(), sensor.getAddress(), getPeriod());
             getChannel().writeAndFlush(new ModbusRtuPayload(txId, sensor.getSalveId().shortValue(), request));
         }
     }
+
+    public void writeData(EamSensor sensor){
+        sendRequest(sensor);
+    }
+
 
     private ModbusRequest buildRequet(EamSensor sensor){
         switch (getFunctionCode(sensor)){
@@ -217,7 +232,7 @@ public class ChannelJob {
         }
     }
 
-    public FunctionCode getFunctionCode(EamSensor sensor){
+    private FunctionCode getFunctionCode(EamSensor sensor){
         return FunctionCode.fromCode(sensor.getFunctionCode().intValue()).get();
     }
 
@@ -326,7 +341,7 @@ public class ChannelJob {
     }
 
     public EamEquipment getDevice() {
-        return device;
+        return this.device;
     }
 
     public void setDevice(EamEquipment device) {

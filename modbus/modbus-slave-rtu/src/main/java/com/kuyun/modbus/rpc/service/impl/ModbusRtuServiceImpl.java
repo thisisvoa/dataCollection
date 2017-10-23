@@ -1,6 +1,7 @@
 package com.kuyun.modbus.rpc.service.impl;
 
 import com.kuyun.common.util.SpringContextUtil;
+import com.kuyun.eam.dao.model.EamSensor;
 import com.kuyun.modbus.ModbusRtuServiceApplication;
 import com.kuyun.modbus.slave.ChannelJob;
 import com.kuyun.modbus.slave.ChannelManager;
@@ -31,6 +32,24 @@ public class ModbusRtuServiceImpl implements ModbusSlaveRtuApiService {
         remove(deviceId);
 
     }
+
+    @Override
+    public boolean writeData(String deviceId, EamSensor sensor) {
+        boolean result = false;
+
+        Pair<ChannelId, ChannelJob> pair = channelManager.getChannelMap().get(deviceId);
+        if (pair != null){
+            Channel channel = channelManager.getChannels().find(pair.getKey());
+            if (channel != null){
+                ChannelJob job = new ChannelJob(channel, null);
+                job.writeData(sensor);
+                result = true;
+            }
+        }
+
+        return result;
+    }
+
 
     private void remove(String deviceId) {
         _log.info("Remove deviceId:[]", deviceId);

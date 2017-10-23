@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.io.IOException;
+
 import static org.quartz.JobBuilder.newJob;
 import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 import static org.quartz.TriggerBuilder.newTrigger;
@@ -52,22 +54,21 @@ public class GrmAplication {
     }
 
     public void run(String deviceId) throws SchedulerException {
-        JobKey jobKey = new JobKey(deviceId, deviceId);
-
-        if (getScheduler().checkExists(jobKey)){
-            resumeJob(deviceId);
-        }else {
-            Pair<JobDetail, SimpleTrigger> pair = buildJobAndTrigger(deviceId);
-            getScheduler().scheduleJob(pair.getKey(), pair.getValue());
-        }
+        _logger.info("GRM Scheduler Starting for device [{}] : ", deviceId);
+        Pair<JobDetail, SimpleTrigger> pair = buildJobAndTrigger(deviceId);
+        getScheduler().scheduleJob(pair.getKey(), pair.getValue());
+        grmUtil.setOnline(deviceId);
     }
 
     public void pauseJob(String deviceId) throws SchedulerException {
+        _logger.info("GRM Scheduler Stopping for device [{}] : ", deviceId);
         JobKey jobKey = new JobKey(deviceId, deviceId);
         if (getScheduler().checkExists(jobKey)){
-            //getScheduler().pauseJob(jobKey);
-            getScheduler().shutdown();
+            getScheduler().unscheduleJob(TriggerKey.triggerKey(deviceId, deviceId));
             grmUtil.deviceUtil.remove(deviceId);
+
+            grmUtil.setOffline(deviceId);
+            _logger.info("GRM Scheduler Stopped for device [{}] : ", deviceId);
         }
     }
 
@@ -79,6 +80,10 @@ public class GrmAplication {
     public void deleteJob(String deviceId) throws SchedulerException{
         JobKey jobKey = new JobKey(deviceId, deviceId);
         getScheduler().deleteJob(jobKey);
+    }
+
+    public String [] writeData(final String deviceId, final String requestData) throws IOException{
+        return grmUtil.writeData(deviceId, requestData);
     }
 
     private int getPeriod(String deviceId){

@@ -74,15 +74,18 @@ public class ChannelManager {
 
                 EamEquipment device = deviceUtil.getDevice(deviceId);
 
-                logger.info("device Id fro DB = [ {} ]", device.getEquipmentId());
+                logger.info("device Id from DB = [ {} ]", device.getEquipmentId());
 
                 if (device != null){
                     deviceUtil.setOnline(device);
+
 
                     ChannelJob job = new ChannelJob(ctx.channel(), device);
 
                     Pair<ChannelId, ChannelJob> myPair = new Pair<>(ctx.channel().id(), job);
                     channelMap.put(deviceId, myPair);
+
+                    logger.info("device Id from DB = [ {} ]", job.getDevice().getEquipmentId());
 
                     if (WORKING.getCode().equalsIgnoreCase(device.getCollectStatus())){
                         job.run();

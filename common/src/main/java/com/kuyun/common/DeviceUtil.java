@@ -134,13 +134,7 @@ public class DeviceUtil {
             allData = pair.getValue();
             String data = pair.getKey();
             data = exchangeData(sensor, data);
-            EamSensorData sensorData = createSensorData(deviceId, sensor.getSensorId(), data);
-            /**
-             * move this in the handleAlarm method since we can get sensorDataId
-             * eamSensorDataService.insertSelective(sensorData);
-             */
-
-            eamApiService.handleAlarm(sensorData);
+            eamApiService.processData(deviceId, sensor.getSensorId(), data);
         }
     }
 
@@ -202,25 +196,25 @@ public class DeviceUtil {
         return result;
     }
 
-    private EamSensorData buildSensorData(String deviceId, int unitId, String data) {
-        EamSensorData result = null;
-        EamSensor sensor = getSensor(deviceId, unitId);
-        if (sensor != null) {
-            result = createSensorData(deviceId, sensor.getSensorId(), data);
-        }
-        return result;
-    }
+//    private EamSensorData buildSensorData(String deviceId, int unitId, String data) {
+//        EamSensorData result = null;
+//        EamSensor sensor = getSensor(deviceId, unitId);
+//        if (sensor != null) {
+//            result = createSensorData(deviceId, sensor.getSensorId(), data);
+//        }
+//        return result;
+//    }
 
-    public EamSensorData createSensorData(String deviceId, Integer sensorId, String data) {
-        EamSensorData result = new EamSensorData();
-        result.setEquipmentId(deviceId);
-        result.setSensorId(sensorId);
-        result.setStringValue(data);
-        result.setCreateTime(getCurrentDateTime());
-        result.setUpdateTime(getCurrentDateTime());
-        result.setDeleteFlag(Boolean.FALSE);
-        return result;
-    }
+//    public EamSensorData createSensorData(String deviceId, Integer sensorId, String data) {
+//        EamSensorData result = new EamSensorData();
+//        result.setEquipmentId(deviceId);
+//        result.setSensorId(sensorId);
+//        result.setStringValue(data);
+//        result.setCreateTime(getCurrentDateTime());
+//        result.setUpdateTime(getCurrentDateTime());
+//        result.setDeleteFlag(Boolean.FALSE);
+//        return result;
+//    }
 
     public Date getCurrentDateTime() {
         LocalDateTime localDateTime = LocalDateTime.now();
