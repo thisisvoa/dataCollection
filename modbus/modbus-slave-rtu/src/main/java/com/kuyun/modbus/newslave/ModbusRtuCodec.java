@@ -113,11 +113,10 @@ public class ModbusRtuCodec extends ByteToMessageCodec<ModbusRtuPayload> {
 			ctx.close();
 		}
 
-		while (buffer.readableBytes() >= MinMessageSize
-				&& buffer.readableBytes() >= getMessagelength(buffer, startIndex)
-				|| session.getHeartBeat() != null && buffer.readableBytes() >= session.getHeartBeat().length) {
-
-			try {
+		try {
+			while (buffer.readableBytes() >= MinMessageSize
+					&& buffer.readableBytes() >= getMessagelength(buffer, startIndex)
+					|| session.getHeartBeat() != null && buffer.readableBytes() >= session.getHeartBeat().length) {
 
 				// skip the heart beat message
 				if (filterHeartBeat(session.getHeartBeat(), session.getHeartBeatStr(), buffer)) {
@@ -137,16 +136,18 @@ public class ModbusRtuCodec extends ByteToMessageCodec<ModbusRtuPayload> {
 				}
 
 				out.add(new ModbusTcpPayload(++transactionId, unitId, modbusPdu));
-			} catch (Throwable t) {
-				throw new Exception("error decoding Rtu", t);
-			}
 
-			startIndex = buffer.readerIndex();
+				startIndex = buffer.readerIndex();
+
+			}
+		} catch (Throwable t) {
+			throw new Exception("error decoding Rtu", t);
 		}
+
 	}
 
 	private int getLength(ByteBuf in, int startIndex) {
-		return in.getUnsignedShort(startIndex + LengthFieldIndex);
+		return in.getUnsignedByte(startIndex + LengthFieldIndex);
 	}
 
 	private short getOperation(ByteBuf in, int startIndex) {
