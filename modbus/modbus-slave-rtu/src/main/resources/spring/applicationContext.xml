@@ -11,7 +11,7 @@
 
     <bean id="springContextUtil" class="com.kuyun.common.util.SpringContextUtil"></bean>
 
-    <bean id="channelManager" class="com.kuyun.modbus.slave.ChannelManager"></bean>
+   <!--  <bean id="channelManager" class="com.kuyun.modbus.slave.ChannelManager"></bean> -->
     <bean id="deviceUtil" class="com.kuyun.common.DeviceUtil"></bean>
 
 
