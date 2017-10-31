@@ -67,30 +67,39 @@ public class ModbusResponseDecoder implements ModbusPduDecoder {
     private ModbusPdu decodeResponse(FunctionCode functionCode, ByteBuf buffer) throws DecoderException {
         switch (functionCode) {
             case ReadCoils:
+            	// 1 + length
                 return decodeReadCoils(buffer);
 
             case ReadDiscreteInputs:
+            	// 1 + length
                 return decodeReadDiscreteInputs(buffer);
 
             case ReadHoldingRegisters:
+            	// 1+ length
                 return decodeReadHoldingRegisters(buffer);
 
             case ReadInputRegisters:
+            	// 1 + length
                 return decodeReadInputRegisters(buffer);
 
             case WriteSingleCoil:
+            	// 4 Bytes
                 return decodeWriteSingleCoil(buffer);
 
             case WriteSingleRegister:
+            	// 4 Bytes
                 return decodeWriteSingleRegister(buffer);
 
             case WriteMultipleCoils:
+            	// 4 Bytes
                 return decodeWriteMultipleCoils(buffer);
 
             case WriteMultipleRegisters:
+            	// 4 Bytes
                 return decodeWriteMultipleRegisters(buffer);
 
             case MaskWriteRegister:
+            	// 6 Bytes
                 return decodeMaskWriteRegister(buffer);
 
             default:

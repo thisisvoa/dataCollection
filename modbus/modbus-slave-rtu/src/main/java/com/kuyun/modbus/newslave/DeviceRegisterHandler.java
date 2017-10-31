@@ -3,12 +3,15 @@ package com.kuyun.modbus.newslave;
 import static com.kuyun.common.util.CommonUtil.DEVICE_ID_LENGTH;
 import static io.netty.util.CharsetUtil.UTF_8;
 
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.kuyun.common.DeviceUtil;
 import com.kuyun.common.util.SpringContextUtil;
 import com.kuyun.eam.dao.model.EamEquipment;
+import com.kuyun.eam.dao.model.EamSensor;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -37,6 +40,7 @@ public class DeviceRegisterHandler extends ChannelInboundHandlerAdapter {
 			ReferenceCountUtil.release(msg);// more data will be discard, if it comes with register message.
 
 			if (deviceUtil.isDevice(deviceId)) {
+				logger.info("Device {} is recognized.", deviceId);
 				initSession(ctx, deviceId);
 				logger.info("Device {} is online now.", deviceId);
 			} else {
@@ -61,26 +65,11 @@ public class DeviceRegisterHandler extends ChannelInboundHandlerAdapter {
 		}
 	}
 
-	// load related
+	// init session with device settings
 	private void initSession(ChannelHandlerContext ctx, String deviceId) {
-		logger.info("Device {} is recognized.", deviceId);
 
-		EamEquipment device = deviceUtil.getDevice(deviceId);
-
-		logger.info("device Id from DB = [ {} ]", device.getEquipmentId());
-
-		deviceUtil.setOnline(device);
-		
-		// ChannelJob job = new ChannelJob(ctx.channel(), device);
-		//
-		// Pair<ChannelId, ChannelJob> myPair = new Pair<>(ctx.channel().id(), job);
-		// channelMap.put(deviceId, myPair);
-		//
-		// logger.info("device Id from DB = [ {} ]", job.getDevice().getEquipmentId());
-		//
-		// if (WORKING.getCode().equalsIgnoreCase(device.getCollectStatus())) {
-		// job.run();
-		// }
-
+		DataCollectionSession session = new DataCollectionSession(deviceUtil, deviceId, ctx.channel().eventLoop(),
+				ctx.channel());
+		ctx.channel().attr(DataCollectionSession.SERVER_SESSION_KEY).set(session);
 	}
 }

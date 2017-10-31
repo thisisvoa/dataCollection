@@ -16,6 +16,7 @@
 
 package com.kuyun.modbus.newslave;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -24,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import com.digitalpetri.modbus.FunctionCode;
 import com.digitalpetri.modbus.ModbusPdu;
 import com.digitalpetri.modbus.UnsupportedPdu;
-import com.digitalpetri.modbus.codec.MbapHeader;
 import com.digitalpetri.modbus.codec.ModbusPduDecoder;
 import com.digitalpetri.modbus.codec.ModbusPduEncoder;
 import com.digitalpetri.modbus.codec.ModbusRtuPayload;
@@ -34,6 +34,7 @@ import com.digitalpetri.modbus.codec.ModbusUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.ByteToMessageCodec;
 import io.netty.handler.codec.DecoderException;
 
@@ -66,7 +67,7 @@ public class ModbusRtuCodec extends ByteToMessageCodec<ModbusRtuPayload> {
 	private final ModbusPduDecoder decoder;
 
 	private short transactionId = 0;
-	
+
 	public ModbusRtuCodec(ModbusPduEncoder encoder, ModbusPduDecoder decoder) {
 		this.encoder = encoder;
 		this.decoder = decoder;
@@ -105,16 +106,28 @@ public class ModbusRtuCodec extends ByteToMessageCodec<ModbusRtuPayload> {
 	@Override
 	protected void decode(ChannelHandlerContext ctx, ByteBuf buffer, List<Object> out) throws Exception {
 		int startIndex = buffer.readerIndex();
+		DataCollectionSession session = ctx.channel().attr(DataCollectionSession.SERVER_SESSION_KEY).get();
+		if (session == null) {
+			// should never happen.
+			logger.error("no session attached when deal with message");
+			ctx.close();
+		}
 
 		while (buffer.readableBytes() >= MinMessageSize
-				&& buffer.readableBytes() >= getMessagelength(buffer, startIndex)) {
+				&& buffer.readableBytes() >= getMessagelength(buffer, startIndex)
+				|| session.getHeartBeat() != null && buffer.readableBytes() >= session.getHeartBeat().length) {
 
 			try {
-				
+
+				// skip the heart beat message
+				if (filterHeartBeat(session.getHeartBeat(), session.getHeartBeatStr(), buffer)) {
+					continue;
+				}
+
 				short unitId = buffer.readUnsignedByte();
-				
+
 				ModbusPdu modbusPdu = decoder.decode(buffer);
-				
+
 				int CRC = buffer.readUnsignedShort(); // for time being, just discard the CRC validation.
 
 				if (modbusPdu instanceof UnsupportedPdu) {
@@ -131,7 +144,6 @@ public class ModbusRtuCodec extends ByteToMessageCodec<ModbusRtuPayload> {
 			startIndex = buffer.readerIndex();
 		}
 	}
-
 
 	private int getLength(ByteBuf in, int startIndex) {
 		return in.getUnsignedShort(startIndex + LengthFieldIndex);
@@ -174,6 +186,33 @@ public class ModbusRtuCodec extends ByteToMessageCodec<ModbusRtuPayload> {
 		default:
 			return 0;
 		}
+	}
+
+	private boolean filterHeartBeat(byte[] heartBeat, String heartBeatStr, ByteBuf buffer) {
+
+		boolean filtered = false;
+
+		if (heartBeat != null) {
+			ByteBuf temp = buffer.slice(buffer.readerIndex(), heartBeat.length);
+
+			if (heartBeatStr.equals(temp.toString(StandardCharsets.UTF_8))) {
+				logger.info("Device Heart Data : [{}] recieved", heartBeatStr);
+				buffer.skipBytes(heartBeat.length);
+				filtered = true;
+			}
+		}
+
+		return filtered;
+	}
+
+	@Override
+	public void close(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
+		DataCollectionSession session = ctx.channel().attr(DataCollectionSession.SERVER_SESSION_KEY).get();
+
+		if (session != null) {
+			session.destory();
+		}
+		super.close(ctx, promise);
 	}
 
 }

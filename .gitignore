@@ -19,3 +19,9 @@ release.properties
 *.iws
 *.iml
 
+#### Eclipse ###
+.settings
+.classpath
+.project
+
+
