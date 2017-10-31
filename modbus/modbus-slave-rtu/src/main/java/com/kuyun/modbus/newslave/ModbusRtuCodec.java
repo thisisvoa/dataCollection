@@ -114,6 +114,7 @@ public class ModbusRtuCodec extends ByteToMessageCodec<ModbusRtuPayload> {
 		}
 
 		try {
+			logger.error("get buffer [{}] to decode", ByteBufUtil.hexDump(buffer));
 			while (buffer.readableBytes() >= MinMessageSize
 					&& buffer.readableBytes() >= getMessagelength(buffer, startIndex)
 					|| session.getHeartBeat() != null && buffer.readableBytes() >= session.getHeartBeat().length) {
