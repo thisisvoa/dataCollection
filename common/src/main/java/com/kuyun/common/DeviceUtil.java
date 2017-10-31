@@ -1,5 +1,6 @@
 package com.kuyun.common;
 
+import com.kuyun.eam.common.constant.CollectStatus;
 import com.kuyun.eam.dao.model.*;
 import com.kuyun.eam.rpc.api.*;
 import javafx.util.Pair;
@@ -101,12 +102,14 @@ public class DeviceUtil {
 
     public void setOffline(EamEquipment device) {
         device.setIsOnline(Boolean.FALSE);
+        device.setCollectStatus(CollectStatus.NO_START.getCode());
         updateDevice(device);
         eamApiService.handleAlarmOffline(device.getEquipmentId());
     }
 
     public void setOnline(EamEquipment device) {
         device.setIsOnline(Boolean.TRUE);
+        device.setCollectStatus(CollectStatus.WORKING.getCode());
         updateDevice(device);
     }
 

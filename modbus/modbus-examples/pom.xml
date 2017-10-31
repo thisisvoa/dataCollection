@@ -42,11 +42,16 @@
             <artifactId>modbus-slave-tcp</artifactId>
             <version>1.1.1</version>
         </dependency>
-        <!--<dependency>-->
-            <!--<groupId>org.slf4j</groupId>-->
-            <!--<artifactId>slf4j-simple</artifactId>-->
-            <!--<version>${slf4j.version}</version>-->
-        <!--</dependency>-->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.12</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.12</version>
+        </dependency>
 
         <!--&lt;!&ndash; https://mvnrepository.com/artifact/commons-io/commons-io &ndash;&gt;
         <dependency>
