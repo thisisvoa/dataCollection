@@ -4,6 +4,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import javax.print.CancelablePrintJob;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +58,7 @@ public class DataCollectionSession implements Runnable {
 
 	private int retryCount = 0;
 	private int currentPayloadPosition = 0; // used to check the response is match to the request.
+	private int nextPayloadPosition = -1; // used to manually send request
 	private long lastRequestTime; // milliseconds
 	private ModbusRtuPayload[] allPayload;
 
@@ -72,9 +75,7 @@ public class DataCollectionSession implements Runnable {
 		case IDEL:
 			// send request.
 
-			channel.writeAndFlush(allPayload[currentPayloadPosition]);
-			currentState = SessionState.RECEIVEING_PENDING;
-			lastRequestTime = System.currentTimeMillis();
+			sendRequest(currentPayloadPosition);
 
 			// change state to RECEIVEING_PENDING, since they are running in the same
 			// eventloop, no need to do the sync.
@@ -92,17 +93,15 @@ public class DataCollectionSession implements Runnable {
 			break;
 
 		case TIME_OUT:
-			
+
 			retryCount++;
-			
+
 			if (retryCount > MAX_RETRY_TIMES) {
 				logger.error("exceed max retry times, connection closed. device ID [{}]", deviceId);
 				channel.close();
 			}
-			
-			channel.writeAndFlush(allPayload[currentPayloadPosition]);
-			currentState = SessionState.RECEIVEING_PENDING;
-			lastRequestTime = System.currentTimeMillis();
+
+			sendRequest(currentPayloadPosition);
 			// retry
 
 			break;
@@ -170,41 +169,18 @@ public class DataCollectionSession implements Runnable {
 		this.deviceId = deviceId;
 	}
 
-	public DataCollectionSession(DeviceUtil deviceUtil, String deviceId, EventLoop loop, Channel channel) {
+	public DataCollectionSession(DeviceUtil deviceUtil, String deviceId, Channel channel) {
 		super();
 		this.deviceUtil = deviceUtil;
 		this.deviceId = deviceId;
 		this.channel = channel;
 
-		device = deviceUtil.getDevice(deviceId);
-		sensors = deviceUtil.getSensors(deviceId);
-
-		loadAllPayload();
-
-		heartBeatStr = device.getHeartData();
-		if (heartBeatStr != null && !heartBeatStr.isEmpty()) {
-			heartBeat = heartBeatStr.getBytes(StandardCharsets.UTF_8);
-		}
-
-		runInterval = MIN_RUN_INTERVAL;
-		if (device.getModbusRtuPeriod() * 1000 > MIN_RUN_INTERVAL) {
-			runInterval = device.getModbusRtuPeriod() * 1000;
-		}
-
-		logger.info("Device Modbus Rtu Period="+device.getModbusRtuPeriod());
-		logger.info("runInterval="+runInterval);
-
-		deviceUtil.setOnline(device);
-		
-		// schedule the task running one the same event loop
-		scheduledTask = loop.scheduleAtFixedRate(this, 0, runInterval, TimeUnit.MILLISECONDS);
-
+		startJob();
 	}
 
 	public void destory() {
 		logger.info("Session destory, device ID {}", deviceId);
-		deviceUtil.setOffline(device);
-		scheduledTask.cancel(false);
+		cancelJob();
 	}
 
 	public void saveData(ModbusRtuPayload payload, String data) {
@@ -228,8 +204,15 @@ public class DataCollectionSession implements Runnable {
 
 			// reset current state
 			currentState = SessionState.IDEL;
+			
 			// move to next request
-			currentPayloadPosition = (currentPayloadPosition + 1) % allPayload.length;
+			if (nextPayloadPosition == -1) {
+				currentPayloadPosition = (currentPayloadPosition + 1) % allPayload.length;
+			} else {
+				currentPayloadPosition = nextPayloadPosition;
+				nextPayloadPosition = -1;
+			}
+
 		}
 
 	}
@@ -353,4 +336,60 @@ public class DataCollectionSession implements Runnable {
 		return new MaskWriteRegisterRequest(address, andMask, orMask);
 	}
 
+	// synchronized is needed, start job button may be clicked multiply times.
+	synchronized public void startJob() {
+		if (scheduledTask == null) {
+			device = deviceUtil.getDevice(deviceId);
+			sensors = deviceUtil.getSensors(deviceId);
+
+			loadAllPayload();
+
+			heartBeatStr = device.getHeartData();
+			if (heartBeatStr != null && !heartBeatStr.isEmpty()) {
+				heartBeat = heartBeatStr.getBytes(StandardCharsets.UTF_8);
+			}
+
+			runInterval = MIN_RUN_INTERVAL;
+			if (device.getModbusRtuPeriod() * 1000 > MIN_RUN_INTERVAL) {
+				runInterval = device.getModbusRtuPeriod() * 1000;
+			}
+
+			logger.info("Device Modbus Rtu Period=" + device.getModbusRtuPeriod());
+			logger.info("runInterval=" + runInterval);
+
+			deviceUtil.setOnline(device);
+
+			// schedule the task running one the same event loop
+			scheduledTask = channel.eventLoop().scheduleAtFixedRate(this, 0, runInterval, TimeUnit.MILLISECONDS);
+
+		}
+	}
+
+	synchronized public void cancelJob() {
+
+		if (scheduledTask != null) {
+			deviceUtil.remove(deviceId);
+			deviceUtil.setOffline(device);
+			scheduledTask.cancel(false);
+			scheduledTask = null;
+		}
+	}
+
+	private void sendRequest(int position) {
+		channel.writeAndFlush(allPayload[position]);
+		currentState = SessionState.RECEIVEING_PENDING;
+		lastRequestTime = System.currentTimeMillis();
+	}
+
+	public boolean sendRequest(EamSensor sensor) {
+
+		for (int i = 0; i < sensors.size(); i++) {
+			if (sensor.getSensorId() == sensors.get(i).getSensorId()) {
+				nextPayloadPosition = i;
+				return true;
+			}
+		}
+
+		return false;
+	}
 }

@@ -3,15 +3,12 @@ package com.kuyun.modbus.newslave;
 import static com.kuyun.common.util.CommonUtil.DEVICE_ID_LENGTH;
 import static io.netty.util.CharsetUtil.UTF_8;
 
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.kuyun.common.DeviceUtil;
 import com.kuyun.common.util.SpringContextUtil;
-import com.kuyun.eam.dao.model.EamEquipment;
-import com.kuyun.eam.dao.model.EamSensor;
+import com.kuyun.modbus.rpc.service.impl.ModbusRtuServiceNewImpl;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -23,6 +20,7 @@ public class DeviceRegisterHandler extends ChannelInboundHandlerAdapter {
 	private String deviceId = "";
 
 	private DeviceUtil deviceUtil = SpringContextUtil.getBean(DeviceUtil.class);
+	private ModbusRtuServiceNewImpl rpcService = SpringContextUtil.getBean(ModbusRtuServiceNewImpl.class);
 
 	private static final Logger logger = LoggerFactory.getLogger(DeviceRegisterHandler.class);
 
@@ -68,8 +66,9 @@ public class DeviceRegisterHandler extends ChannelInboundHandlerAdapter {
 	// init session with device settings
 	private void initSession(ChannelHandlerContext ctx, String deviceId) {
 
-		DataCollectionSession session = new DataCollectionSession(deviceUtil, deviceId, ctx.channel().eventLoop(),
-				ctx.channel());
+		DataCollectionSession session = new DataCollectionSession(deviceUtil, deviceId, ctx.channel());
 		ctx.channel().attr(DataCollectionSession.SERVER_SESSION_KEY).set(session);
+		rpcService.registerDeviceChannel(deviceId, ctx.channel());
+		
 	}
 }
