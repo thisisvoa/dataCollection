@@ -2,9 +2,8 @@ package com.kuyun.modbus.newslave;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-
-import javax.print.CancelablePrintJob;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +28,6 @@ import com.kuyun.eam.dao.model.EamSensor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-import io.netty.channel.EventLoop;
 import io.netty.util.AttributeKey;
 import io.netty.util.concurrent.ScheduledFuture;
 
@@ -58,9 +56,12 @@ public class DataCollectionSession implements Runnable {
 
 	private int retryCount = 0;
 	private int currentPayloadPosition = 0; // used to check the response is match to the request.
-	private int nextPayloadPosition = -1; // used to manually send request
 	private long lastRequestTime; // milliseconds
 	private ModbusRtuPayload[] allPayload;
+
+	private ModbusRtuPayload adhocPayload; // used to manually send request
+	private CompletableFuture<Boolean> adhocRequestPromise;
+	private boolean isAdhocRequestSent = false;
 
 	private SessionState currentState = SessionState.IDEL;
 
@@ -74,8 +75,9 @@ public class DataCollectionSession implements Runnable {
 		switch (currentState) {
 		case IDEL:
 			// send request.
-
-			sendRequest(currentPayloadPosition);
+			if (!sendAdhocRequest()) {
+				sendRequest(currentPayloadPosition);
+			}
 
 			// change state to RECEIVEING_PENDING, since they are running in the same
 			// eventloop, no need to do the sync.
@@ -106,11 +108,32 @@ public class DataCollectionSession implements Runnable {
 
 			break;
 
+		case ADHOC_RECEIVEING_PENDING:
+
+			if (System.currentTimeMillis() - lastRequestTime > TIME_OUT_INTERVAL) {
+				currentState = SessionState.ADHOC_TIME_OUT;
+			}
+
+			break;
+
+		case ADHOC_TIME_OUT:
+
+			retryCount++;
+
+			if (retryCount > MAX_RETRY_TIMES) {
+				logger.error("exceed max retry times, connection closed. device ID [{}]", deviceId);
+				channel.close();
+			}
+
+			sendAdhocRequest();
+
+			break;
+
 		}
 	}
 
 	public static enum SessionState {
-		IDEL, RECEIVEING_PENDING, TIME_OUT,
+		IDEL, RECEIVEING_PENDING, TIME_OUT, ADHOC_RECEIVEING_PENDING, ADHOC_TIME_OUT
 	}
 
 	public EamEquipment getDevice() {
@@ -189,30 +212,51 @@ public class DataCollectionSession implements Runnable {
 		logger.info("unit Id = [ {} ]", payload.getUnitId());
 		logger.info("client response = [ {} ]", data);
 
-		int code = allPayload[currentPayloadPosition].getModbusPdu().getFunctionCode().getCode();
-		int returnCode = payload.getModbusPdu().getFunctionCode().getCode();
+		if (adhocPayload != null && isAdhocRequestSent) { // adhoc response
+			if (adhocPayload.getUnitId() == payload.getUnitId()) {
+				int code = adhocPayload.getModbusPdu().getFunctionCode().getCode();
+				int returnCode = payload.getModbusPdu().getFunctionCode().getCode();
 
-		if (payload.getModbusPdu() instanceof ExceptionResponse) {
-			returnCode = ((ExceptionResponse) payload.getModbusPdu()).getExceptionCode().getCode() - 0x80;
-		}
+				if (payload.getModbusPdu() instanceof ExceptionResponse) {
+					returnCode = ((ExceptionResponse) payload.getModbusPdu()).getExceptionCode().getCode() - 0x80;
 
-		if (code == returnCode) {
-			// save data
-			if (!(payload.getModbusPdu() instanceof ExceptionResponse)) {
-				deviceUtil.persistDB(deviceId, payload.getUnitId(), data);
+					if (code == returnCode) {
+						adhocRequestPromise.complete(false);
+						adhocPayload = null;
+						currentState = SessionState.IDEL;
+						isAdhocRequestSent = false;
+					}
+
+				} else {
+					if (code == returnCode) {
+						adhocRequestPromise.complete(true);
+						adhocPayload = null;
+						isAdhocRequestSent = false;
+						currentState = SessionState.IDEL;
+					}
+				}
+			}
+		} else {
+
+			int code = allPayload[currentPayloadPosition].getModbusPdu().getFunctionCode().getCode();
+			int returnCode = payload.getModbusPdu().getFunctionCode().getCode();
+
+			if (payload.getModbusPdu() instanceof ExceptionResponse) {
+				returnCode = ((ExceptionResponse) payload.getModbusPdu()).getExceptionCode().getCode() - 0x80;
 			}
 
-			// reset current state
-			currentState = SessionState.IDEL;
-			
-			// move to next request
-			if (nextPayloadPosition == -1) {
+			if (code == returnCode) {
+				// save data
+				if (!(payload.getModbusPdu() instanceof ExceptionResponse)) {
+					deviceUtil.persistDB(deviceId, payload.getUnitId(), data);
+				}
+
+				// reset current state
+				currentState = SessionState.IDEL;
+
 				currentPayloadPosition = (currentPayloadPosition + 1) % allPayload.length;
-			} else {
-				currentPayloadPosition = nextPayloadPosition;
-				nextPayloadPosition = -1;
-			}
 
+			}
 		}
 
 	}
@@ -376,20 +420,36 @@ public class DataCollectionSession implements Runnable {
 	}
 
 	private void sendRequest(int position) {
-		channel.writeAndFlush(allPayload[position]);
 		currentState = SessionState.RECEIVEING_PENDING;
+		channel.writeAndFlush(allPayload[position]);
+
 		lastRequestTime = System.currentTimeMillis();
 	}
 
-	public boolean sendRequest(EamSensor sensor) {
+	private boolean sendAdhocRequest() {
+		if (adhocPayload != null) {
+			currentState = SessionState.ADHOC_RECEIVEING_PENDING;
+			channel.writeAndFlush(adhocPayload);
+			isAdhocRequestSent = true;
 
-		for (int i = 0; i < sensors.size(); i++) {
-			if (sensor.getSensorId() == sensors.get(i).getSensorId()) {
-				nextPayloadPosition = i;
-				return true;
-			}
+			lastRequestTime = System.currentTimeMillis();
+			return true;
+		}
+		return false;
+	}
+
+	// send adhoc request.
+	synchronized public CompletableFuture<Boolean> sendAdhocRequest(EamSensor sensor) {
+
+		if (adhocPayload != null) {
+			// already have pending adhoc request, the future will immediately return false;
+			return CompletableFuture.completedFuture(false);
 		}
 
-		return false;
+		ModbusRequest request = buildRequet(sensor);
+		adhocPayload = new ModbusRtuPayload("", sensor.getSalveId().shortValue(), request);
+		adhocRequestPromise = new CompletableFuture<Boolean>();
+
+		return adhocRequestPromise;
 	}
 }

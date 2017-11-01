@@ -2,6 +2,7 @@ package com.kuyun.modbus.rpc.service.impl;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +62,12 @@ public class ModbusRtuServiceNewImpl implements ModbusSlaveRtuApiService {
 		if (channel != null) {
 			DataCollectionSession session = channel.attr(DataCollectionSession.SERVER_SESSION_KEY).get();
 			if (session != null) {
-				return session.sendRequest(sensor);
+					try {
+						return session.sendAdhocRequest(sensor).get();
+					} catch (InterruptedException | ExecutionException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 			}
 		}
 
