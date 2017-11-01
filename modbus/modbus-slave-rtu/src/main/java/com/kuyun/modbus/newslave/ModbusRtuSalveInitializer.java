@@ -15,7 +15,7 @@ import io.netty.handler.logging.LoggingHandler;
 public class ModbusRtuSalveInitializer extends ChannelInitializer<SocketChannel> {
 
 	// this handler can be shared, so use only one instance.
-	private ModbusRutSlaveHandler rutSlaveHandler = new ModbusRutSlaveHandler();
+//	private ModbusRutSlaveHandler rutSlaveHandler = new ModbusRutSlaveHandler();
 
 	// below codec can be shared? suppose to
 	private ModbusRequestEncoder encoder = new ModbusRequestEncoder();
@@ -30,6 +30,7 @@ public class ModbusRtuSalveInitializer extends ChannelInitializer<SocketChannel>
 		pipeline.addLast(new ModbusRtuCodec(encoder, decoder));
 
 		// and then business logic.
-		pipeline.addLast(rutSlaveHandler);
+//		pipeline.addLast(rutSlaveHandler);
+		pipeline.addLast(new ModbusRutSlaveHandler());
 	}
 }

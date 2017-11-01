@@ -191,14 +191,18 @@ public class DataCollectionSession implements Runnable {
 			runInterval = device.getModbusRtuPeriod() * 1000;
 		}
 
+		logger.info("Device Modbus Rtu Period="+device.getModbusRtuPeriod());
+		logger.info("runInterval="+runInterval);
+
 		deviceUtil.setOnline(device);
 		
 		// schedule the task running one the same event loop
-		scheduledTask = loop.scheduleAtFixedRate(this, runInterval, runInterval, TimeUnit.MILLISECONDS);
+		scheduledTask = loop.scheduleAtFixedRate(this, 0, runInterval, TimeUnit.MILLISECONDS);
 
 	}
 
 	public void destory() {
+		logger.info("Session destory, device ID {}", deviceId);
 		deviceUtil.setOffline(device);
 		scheduledTask.cancel(false);
 	}

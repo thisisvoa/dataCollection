@@ -36,7 +36,7 @@ public class ModbusRutSlaveHandler extends SimpleChannelInboundHandler<ModbusRtu
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
     	DataCollectionSession session = ctx.channel().attr(DataCollectionSession.SERVER_SESSION_KEY).get();
-    	
+    	logger.info("channelInactive");
     	if (session != null) {
     		session.destory();
     	}
@@ -49,7 +49,7 @@ public class ModbusRutSlaveHandler extends SimpleChannelInboundHandler<ModbusRtu
     }
 
     private void onChannelRead(ChannelHandlerContext ctx, ModbusRtuPayload payload) {
-       
+       logger.info("onChannelRead");
     	DataCollectionSession session = ctx.channel().attr(DataCollectionSession.SERVER_SESSION_KEY).get();
     	
     	ByteBuf buffer =  buffer(128);

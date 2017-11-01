@@ -114,10 +114,13 @@ public class ModbusRtuCodec extends ByteToMessageCodec<ModbusRtuPayload> {
 		}
 
 		try {
-			logger.error("get buffer [{}] to decode", ByteBufUtil.hexDump(buffer));
-			while (buffer.readableBytes() >= MinMessageSize
-					&& buffer.readableBytes() >= getMessagelength(buffer, startIndex)
-					|| session.getHeartBeat() != null && buffer.readableBytes() >= session.getHeartBeat().length) {
+			logger.info("get buffer [{}] to decode", ByteBufUtil.hexDump(buffer));
+			logger.info("buffer size [{}]", buffer.readableBytes());
+			logger.info("Message length [{}]", getMessagelength(buffer, startIndex));
+
+			while ((buffer.readableBytes() >= MinMessageSize
+					&& buffer.readableBytes() >= getMessagelength(buffer, startIndex))
+					|| (session.getHeartBeat() != null && buffer.readableBytes() >= session.getHeartBeat().length)) {
 
 				// skip the heart beat message
 				if (filterHeartBeat(session.getHeartBeat(), session.getHeartBeatStr(), buffer)) {
@@ -125,6 +128,9 @@ public class ModbusRtuCodec extends ByteToMessageCodec<ModbusRtuPayload> {
 				}
 
 				short unitId = buffer.readUnsignedByte();
+
+				logger.info("unitId [{}]", unitId);
+
 
 				ModbusPdu modbusPdu = decoder.decode(buffer);
 
@@ -136,13 +142,17 @@ public class ModbusRtuCodec extends ByteToMessageCodec<ModbusRtuPayload> {
 					buffer.readerIndex(endIndex);
 				}
 
-				out.add(new ModbusTcpPayload(++transactionId, unitId, modbusPdu));
+				out.add(new ModbusRtuPayload(String.valueOf(++transactionId), unitId, modbusPdu));
+
+				logger.info("unitId [{}]", unitId);
 
 				startIndex = buffer.readerIndex();
 
 			}
 		} catch (Throwable t) {
-			throw new Exception("error decoding Rtu", t);
+			buffer.clear();
+			logger.error("error decoding header/pdu", t);
+//			throw new Exception("error decoding Rtu", t);
 		}
 
 	}
@@ -198,7 +208,7 @@ public class ModbusRtuCodec extends ByteToMessageCodec<ModbusRtuPayload> {
 			ByteBuf temp = buffer.slice(buffer.readerIndex(), heartBeat.length);
 
 			if (heartBeatStr.equals(temp.toString(StandardCharsets.UTF_8))) {
-				logger.info("Device Heart Data : [{}] recieved", heartBeatStr);
+				logger.info("Device Heart Data : [{}] received", heartBeatStr);
 				buffer.skipBytes(heartBeat.length);
 				filtered = true;
 			}
@@ -207,14 +217,14 @@ public class ModbusRtuCodec extends ByteToMessageCodec<ModbusRtuPayload> {
 		return filtered;
 	}
 
-	@Override
-	public void close(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
-		DataCollectionSession session = ctx.channel().attr(DataCollectionSession.SERVER_SESSION_KEY).get();
-
-		if (session != null) {
-			session.destory();
-		}
-		super.close(ctx, promise);
-	}
+//	@Override
+//	public void close(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
+//		DataCollectionSession session = ctx.channel().attr(DataCollectionSession.SERVER_SESSION_KEY).get();
+//		logger.info("Close!!");
+//		if (session != null) {
+//			session.destory();
+//		}
+//		super.close(ctx, promise);
+//	}
 
 }
