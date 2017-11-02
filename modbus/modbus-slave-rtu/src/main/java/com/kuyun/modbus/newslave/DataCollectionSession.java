@@ -31,8 +31,6 @@ import io.netty.channel.Channel;
 import io.netty.util.AttributeKey;
 import io.netty.util.concurrent.ScheduledFuture;
 
-import static com.digitalpetri.modbus.FunctionCode.*;
-
 public class DataCollectionSession implements Runnable {
 
 	public static final AttributeKey<DataCollectionSession> SERVER_SESSION_KEY = AttributeKey.valueOf("session");
@@ -75,70 +73,54 @@ public class DataCollectionSession implements Runnable {
 	@Override
 	public void run() {
 		switch (currentState) {
-		case IDEL:
-			// send request.
-			if (!sendAdhocRequest()) {
+			case IDEL:
+				// send request.
+				if (!sendAdhocRequest()) {
+					sendRequest(currentPayloadPosition);
+				}
+
+				// change state to RECEIVEING_PENDING, since they are running in the same
+				// eventloop, no need to do the sync.
+				break;
+
+			case RECEIVEING_PENDING:
+				// check the timeout setting.
+				// if time out change to TIME_OUT.
+				// else skip this run loop.
+
+				if (System.currentTimeMillis() - lastRequestTime > TIME_OUT_INTERVAL) {
+					currentState = SessionState.TIME_OUT;
+				}
+
+				break;
+
+			case TIME_OUT:
+
+				retryCount++;
+
+				if (retryCount > MAX_RETRY_TIMES) {
+					logger.error("exceed max retry times, connection closed. device ID [{}]", deviceId);
+					channel.close();
+				}
+
 				sendRequest(currentPayloadPosition);
-			}
+				// retry
 
-			// change state to RECEIVEING_PENDING, since they are running in the same
-			// eventloop, no need to do the sync.
-			break;
+				break;
 
-		case RECEIVEING_PENDING:
-			// check the timeout setting.
-			// if time out change to TIME_OUT.
-			// else skip this run loop.
+			case ADHOC_RECEIVEING_PENDING:
 
-			if (System.currentTimeMillis() - lastRequestTime > TIME_OUT_INTERVAL) {
-				currentState = SessionState.TIME_OUT;
-			}
+				if (System.currentTimeMillis() - lastRequestTime > TIME_OUT_INTERVAL) {
+					completeAdhocRequest(false);
+				}
 
-			break;
-
-		case TIME_OUT:
-
-			retryCount++;
-
-			if (retryCount > MAX_RETRY_TIMES) {
-				logger.error("exceed max retry times, connection closed. device ID [{}]", deviceId);
-				channel.close();
-			}
-
-			sendRequest(currentPayloadPosition);
-			// retry
-
-			break;
-
-		case ADHOC_RECEIVEING_PENDING:
-
-			if (System.currentTimeMillis() - lastRequestTime > TIME_OUT_INTERVAL) {
-				currentState = SessionState.ADHOC_TIME_OUT;
-			}
-
-			break;
-
-		case ADHOC_TIME_OUT:
-
-			adhocRequestPromise.complete(false);
-			releaseAdhocPayload();
-
-//			retryCount++;
-//
-//			if (retryCount > MAX_RETRY_TIMES) {
-//				logger.error("exceed max retry times, connection closed. device ID [{}]", deviceId);
-//				channel.close();
-//			}
-//
-//			sendAdhocRequest();
-
-			break;
+				break;
 
 		}
 	}
 
 	public static enum SessionState {
-		IDEL, RECEIVEING_PENDING, TIME_OUT, ADHOC_RECEIVEING_PENDING, ADHOC_TIME_OUT
+		IDEL, RECEIVEING_PENDING, TIME_OUT, ADHOC_RECEIVEING_PENDING
 	}
 
 	public EamEquipment getDevice() {
@@ -216,7 +198,6 @@ public class DataCollectionSession implements Runnable {
 		logger.info("device Id = [ {} ]", deviceId);
 		logger.info("unit Id = [ {} ]", payload.getUnitId());
 		logger.info("client response = [ {} ]", data);
-		logger.info("return function Code = [ {} ]", payload.getModbusPdu().getFunctionCode().getCode());
 
 		if (adhocPayload != null && isAdhocRequestSent) { // adhoc response
 			if (adhocPayload.getUnitId() == payload.getUnitId()) {
@@ -224,18 +205,12 @@ public class DataCollectionSession implements Runnable {
 				int returnCode = payload.getModbusPdu().getFunctionCode().getCode();
 
 				if (payload.getModbusPdu() instanceof ExceptionResponse) {
-					returnCode = ((ExceptionResponse) payload.getModbusPdu()).getExceptionCode().getCode() - 0x80;
-
-					if (code == returnCode) {
-						adhocRequestPromise.complete(false);
-						releaseAdhocPayload();
-					}
-
+					// returnCode = ((ExceptionResponse)
+					// payload.getModbusPdu()).getExceptionCode().getCode() - 0x80;
+					completeAdhocRequest(false);
 				} else {
-					if (code == returnCode) {
-						adhocRequestPromise.complete(true);
-						releaseAdhocPayload();
-					}
+					completeAdhocRequest(code == returnCode);
+
 				}
 			}
 		} else {
@@ -250,7 +225,7 @@ public class DataCollectionSession implements Runnable {
 			if (code == returnCode) {
 				// save data
 				if (!(payload.getModbusPdu() instanceof ExceptionResponse)) {
-					//deviceUtil.persistDB(deviceId, payload.getUnitId(), data);
+					deviceUtil.persistDB(deviceId, payload.getUnitId(), data);
 				}
 
 				// reset current state
@@ -261,12 +236,6 @@ public class DataCollectionSession implements Runnable {
 			}
 		}
 
-	}
-
-	private void releaseAdhocPayload() {
-		adhocPayload = null;
-		currentState = SessionState.IDEL;
-		isAdhocRequestSent = false;
 	}
 
 	// load all payload;
@@ -280,40 +249,39 @@ public class DataCollectionSession implements Runnable {
 				allPayload[index++] = new ModbusRtuPayload("", sensor.getSalveId().shortValue(), request);
 			}
 		}
-
 	}
 
 	private ModbusRequest buildRequet(EamSensor sensor) {
 		switch (getFunctionCode(sensor)) {
-		case ReadCoils:
-			return buildReadCoils(sensor);
+			case ReadCoils:
+				return buildReadCoils(sensor);
 
-		case ReadDiscreteInputs:
-			return buildReadDiscreteInputs(sensor);
+			case ReadDiscreteInputs:
+				return buildReadDiscreteInputs(sensor);
 
-		case ReadHoldingRegisters:
-			return buildReadHoldingRegisters(sensor);
+			case ReadHoldingRegisters:
+				return buildReadHoldingRegisters(sensor);
 
-		case ReadInputRegisters:
-			return buildReadInputRegisters(sensor);
+			case ReadInputRegisters:
+				return buildReadInputRegisters(sensor);
 
-		case WriteSingleCoil:
-			return buildWriteSingleCoil(sensor);
+			case WriteSingleCoil:
+				return buildWriteSingleCoil(sensor);
 
-		case WriteSingleRegister:
-			return buildWriteSingleRegister(sensor);
+			case WriteSingleRegister:
+				return buildWriteSingleRegister(sensor);
 
-		case WriteMultipleCoils:
-			return buildWriteMultipleCoils(sensor);
+			case WriteMultipleCoils:
+				return buildWriteMultipleCoils(sensor);
 
-		case WriteMultipleRegisters:
-			return buildWriteMultipleRegisters(sensor);
+			case WriteMultipleRegisters:
+				return buildWriteMultipleRegisters(sensor);
 
-		case MaskWriteRegister:
-			return buildMaskWriteRegister(sensor);
+			case MaskWriteRegister:
+				return buildMaskWriteRegister(sensor);
 
-		default:
-			return null;
+			default:
+				return null;
 		}
 
 	}
@@ -438,7 +406,6 @@ public class DataCollectionSession implements Runnable {
 
 	private boolean sendAdhocRequest() {
 		if (adhocPayload != null) {
-			logger.info("Send Adhoc Request [{}]", adhocPayload);
 			currentState = SessionState.ADHOC_RECEIVEING_PENDING;
 			channel.writeAndFlush(adhocPayload);
 			isAdhocRequestSent = true;
@@ -449,9 +416,16 @@ public class DataCollectionSession implements Runnable {
 		return false;
 	}
 
+	private void completeAdhocRequest(boolean result) {
+		adhocRequestPromise.complete(result);
+		adhocPayload = null;
+		currentState = SessionState.IDEL;
+		isAdhocRequestSent = false;
+	}
+
 	// send adhoc request.
 	synchronized public CompletableFuture<Boolean> sendAdhocRequest(EamSensor sensor) {
-		logger.info("send Adhoc Request [ {} ]", sensor);
+
 		if (adhocPayload != null) {
 			// already have pending adhoc request, the future will immediately return false;
 			return CompletableFuture.completedFuture(false);
