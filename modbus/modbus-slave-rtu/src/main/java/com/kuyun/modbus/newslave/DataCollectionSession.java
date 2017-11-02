@@ -111,21 +111,8 @@ public class DataCollectionSession implements Runnable {
 		case ADHOC_RECEIVEING_PENDING:
 
 			if (System.currentTimeMillis() - lastRequestTime > TIME_OUT_INTERVAL) {
-				currentState = SessionState.ADHOC_TIME_OUT;
+				completeAdhocRequest(false);
 			}
-
-			break;
-
-		case ADHOC_TIME_OUT:
-
-			retryCount++;
-
-			if (retryCount > MAX_RETRY_TIMES) {
-				logger.error("exceed max retry times, connection closed. device ID [{}]", deviceId);
-				channel.close();
-			}
-
-			sendAdhocRequest();
 
 			break;
 
@@ -133,7 +120,7 @@ public class DataCollectionSession implements Runnable {
 	}
 
 	public static enum SessionState {
-		IDEL, RECEIVEING_PENDING, TIME_OUT, ADHOC_RECEIVEING_PENDING, ADHOC_TIME_OUT
+		IDEL, RECEIVEING_PENDING, TIME_OUT, ADHOC_RECEIVEING_PENDING
 	}
 
 	public EamEquipment getDevice() {
@@ -218,22 +205,12 @@ public class DataCollectionSession implements Runnable {
 				int returnCode = payload.getModbusPdu().getFunctionCode().getCode();
 
 				if (payload.getModbusPdu() instanceof ExceptionResponse) {
-					returnCode = ((ExceptionResponse) payload.getModbusPdu()).getExceptionCode().getCode() - 0x80;
-
-					if (code == returnCode) {
-						adhocRequestPromise.complete(false);
-						adhocPayload = null;
-						currentState = SessionState.IDEL;
-						isAdhocRequestSent = false;
-					}
-
+					// returnCode = ((ExceptionResponse)
+					// payload.getModbusPdu()).getExceptionCode().getCode() - 0x80;
+					completeAdhocRequest(false);
 				} else {
-					if (code == returnCode) {
-						adhocRequestPromise.complete(true);
-						adhocPayload = null;
-						isAdhocRequestSent = false;
-						currentState = SessionState.IDEL;
-					}
+					completeAdhocRequest(code == returnCode);
+
 				}
 			}
 		} else {
@@ -436,6 +413,13 @@ public class DataCollectionSession implements Runnable {
 			return true;
 		}
 		return false;
+	}
+
+	private void completeAdhocRequest(boolean result) {
+		adhocRequestPromise.complete(result);
+		adhocPayload = null;
+		currentState = SessionState.IDEL;
+		isAdhocRequestSent = false;
 	}
 
 	// send adhoc request.
