@@ -50,6 +50,52 @@ public enum FunctionCode {
         return code;
     }
 
+    public boolean isRead(){
+        switch(code) {
+            case 0x01:
+            case 0x02:
+            case 0x03:
+            case 0x04:
+            case 0x07:
+            case 0x14:
+            case 0x18:
+                return true;
+
+            case 0x05:
+            case 0x06:
+            case 0x15:
+            case 0x16:
+            case 0x0F:
+            case 0x10:
+                return false;
+
+        }
+        return false;
+    }
+
+    public boolean isWrite(){
+        switch(code) {
+            case 0x01:
+            case 0x02:
+            case 0x03:
+            case 0x04:
+            case 0x07:
+            case 0x14:
+            case 0x18:
+                return false;
+
+            case 0x05:
+            case 0x06:
+            case 0x15:
+            case 0x16:
+            case 0x0F:
+            case 0x10:
+                return true;
+
+        }
+        return false;
+    }
+
     public static Optional<FunctionCode> fromCode(int code) {
         switch(code) {
             case 0x01: return Optional.of(ReadCoils);
