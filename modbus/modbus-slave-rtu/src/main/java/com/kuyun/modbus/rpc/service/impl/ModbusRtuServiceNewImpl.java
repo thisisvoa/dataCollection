@@ -1,8 +1,6 @@
 package com.kuyun.modbus.rpc.service.impl;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,49 +26,47 @@ public class ModbusRtuServiceNewImpl implements ModbusSlaveRtuApiService {
 
 	@Override
 	public void startJob(String deviceId) {
-
-		Channel channel = channels.find(deviceChannels.get(deviceId));
-
-		if (channel != null) {
-			DataCollectionSession session = channel.attr(DataCollectionSession.SERVER_SESSION_KEY).get();
-			if (session != null) {
-				session.startJob();
-			}
+		DataCollectionSession session = getCollectionSession(deviceId);
+		if (session != null) {
+			session.startJob();
 		}
-
 	}
 
 	@Override
 	public void pauseJob(String deviceId) {
-		Channel channel = channels.find(deviceChannels.get(deviceId));
+		DataCollectionSession session = getCollectionSession(deviceId);
+		if (session != null) {
+			session.cancelJob();
+		}
+	}
 
-		if (channel != null) {
-			DataCollectionSession session = channel.attr(DataCollectionSession.SERVER_SESSION_KEY).get();
-			if (session != null) {
-				session.cancelJob();
+	private DataCollectionSession getCollectionSession(String deviceId) {
+		DataCollectionSession result = null;
+		ChannelId channelId  = deviceChannels.get(deviceId);
+		if (channelId != null){
+			Channel channel = channels.find(channelId);
+			if (channel != null){
+				result = channel.attr(DataCollectionSession.SERVER_SESSION_KEY).get();
 			}
 		}
-
+		return result;
 	}
 
 	@Override
 	public boolean writeData(String deviceId, EamSensor sensor) {
+		_log.info("Device Id [ {} ] Write Data [ {} ]", deviceId, sensor);
 		boolean result = false;
+		DataCollectionSession session = getCollectionSession(deviceId);
+		if (session != null) {
+			try {
+				result = session.sendAdhocRequest(sensor).get();
 
-		Channel channel = channels.find(deviceChannels.get(deviceId));
-
-		if (channel != null) {
-			DataCollectionSession session = channel.attr(DataCollectionSession.SERVER_SESSION_KEY).get();
-			if (session != null) {
-					try {
-						return session.sendAdhocRequest(sensor).get();
-					} catch (InterruptedException | ExecutionException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+			} catch (InterruptedException | ExecutionException e) {
+				_log.error("Device Id [ {} ] Write Data [ {} ] Error [ {} ]", deviceId, sensor, e.getMessage());
 			}
 		}
 
+		_log.info("Write Data Result [ {} ]", result);
 		return result;
 	}
 
