@@ -9,24 +9,24 @@ import com.kuyun.modbus.rpc.service.impl.ModbusRtuServiceNewImpl;
  */
 public class ModbusRtuSlaveTest {
 
-    public static void main(String[] args) throws Exception {
-//        ModbusRtuSlave slave = new ModbusRtuSlave();
-//        slave.run();
+	public static void main(String[] args) throws Exception {
+		// ModbusRtuSlave slave = new ModbusRtuSlave();
+		// slave.run();
 
-        ModbusRtuServiceNewImpl service = new ModbusRtuServiceNewImpl();
-        EamSensor sensor = mockSensor();
-        boolean result = service.writeData("A5TrjBBOgJ89t0ay", sensor);
+		ModbusRtuServiceNewImpl service = new ModbusRtuServiceNewImpl();
+		EamSensor sensor = mockSensor();
+		boolean result = service.writeData("A5TrjBBOgJ89t0ay", sensor);
 
-        System.out.println(result);
-    }
+		System.out.println(result);
+	}
 
-    static EamSensor mockSensor(){
-        EamSensor sensor = new EamSensor();
-        sensor.setSensorId(1);
-        sensor.setSalveId(1);
-        sensor.setAddress(1);
-        sensor.setWriteNumber(3);
-        sensor.setFunctionCode(FunctionCode.WriteSingleRegister.getCode());
-        return sensor;
-    }
+	static EamSensor mockSensor() {
+		EamSensor sensor = new EamSensor();
+		sensor.setSensorId(1);
+		// sensor.setSalveId(1);
+		sensor.setAddress(1);
+		sensor.setWriteNumber(3);
+		sensor.setFunctionCode(FunctionCode.WriteSingleRegister.getCode());
+		return sensor;
+	}
 }

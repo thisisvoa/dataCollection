@@ -73,48 +73,48 @@ public class DataCollectionSession implements Runnable {
 	@Override
 	public void run() {
 		switch (currentState) {
-			case IDEL:
-				// send request.
-				if (!sendAdhocRequest()) {
-					sendRequest(currentPayloadPosition);
-				}
-
-				// change state to RECEIVEING_PENDING, since they are running in the same
-				// eventloop, no need to do the sync.
-				break;
-
-			case RECEIVEING_PENDING:
-				// check the timeout setting.
-				// if time out change to TIME_OUT.
-				// else skip this run loop.
-
-				if (System.currentTimeMillis() - lastRequestTime > TIME_OUT_INTERVAL) {
-					currentState = SessionState.TIME_OUT;
-				}
-
-				break;
-
-			case TIME_OUT:
-
-				retryCount++;
-
-				if (retryCount > MAX_RETRY_TIMES) {
-					logger.error("exceed max retry times, connection closed. device ID [{}]", deviceId);
-					channel.close();
-				}
-
+		case IDEL:
+			// send request.
+			if (!sendAdhocRequest()) {
 				sendRequest(currentPayloadPosition);
-				// retry
+			}
 
-				break;
+			// change state to RECEIVEING_PENDING, since they are running in the same
+			// eventloop, no need to do the sync.
+			break;
 
-			case ADHOC_RECEIVEING_PENDING:
+		case RECEIVEING_PENDING:
+			// check the timeout setting.
+			// if time out change to TIME_OUT.
+			// else skip this run loop.
 
-				if (System.currentTimeMillis() - lastRequestTime > TIME_OUT_INTERVAL) {
-					completeAdhocRequest(false);
-				}
+			if (System.currentTimeMillis() - lastRequestTime > TIME_OUT_INTERVAL) {
+				currentState = SessionState.TIME_OUT;
+			}
 
-				break;
+			break;
+
+		case TIME_OUT:
+
+			retryCount++;
+
+			if (retryCount > MAX_RETRY_TIMES) {
+				logger.error("exceed max retry times, connection closed. device ID [{}]", deviceId);
+				channel.close();
+			}
+
+			sendRequest(currentPayloadPosition);
+			// retry
+
+			break;
+
+		case ADHOC_RECEIVEING_PENDING:
+
+			if (System.currentTimeMillis() - lastRequestTime > TIME_OUT_INTERVAL) {
+				completeAdhocRequest(false);
+			}
+
+			break;
 
 		}
 	}
@@ -244,44 +244,44 @@ public class DataCollectionSession implements Runnable {
 		allPayload = new ModbusRtuPayload[sensors.size()];
 		int index = 0;
 		for (EamSensor sensor : sensors) {
-			if (getFunctionCode(sensor).isRead()){
+			if (getFunctionCode(sensor).isRead()) {
 				ModbusRequest request = buildRequet(sensor);
-				allPayload[index++] = new ModbusRtuPayload("", sensor.getSalveId().shortValue(), request);
+				allPayload[index++] = new ModbusRtuPayload("", device.getSalveId().shortValue(), request);
 			}
 		}
 	}
 
 	private ModbusRequest buildRequet(EamSensor sensor) {
 		switch (getFunctionCode(sensor)) {
-			case ReadCoils:
-				return buildReadCoils(sensor);
+		case ReadCoils:
+			return buildReadCoils(sensor);
 
-			case ReadDiscreteInputs:
-				return buildReadDiscreteInputs(sensor);
+		case ReadDiscreteInputs:
+			return buildReadDiscreteInputs(sensor);
 
-			case ReadHoldingRegisters:
-				return buildReadHoldingRegisters(sensor);
+		case ReadHoldingRegisters:
+			return buildReadHoldingRegisters(sensor);
 
-			case ReadInputRegisters:
-				return buildReadInputRegisters(sensor);
+		case ReadInputRegisters:
+			return buildReadInputRegisters(sensor);
 
-			case WriteSingleCoil:
-				return buildWriteSingleCoil(sensor);
+		case WriteSingleCoil:
+			return buildWriteSingleCoil(sensor);
 
-			case WriteSingleRegister:
-				return buildWriteSingleRegister(sensor);
+		case WriteSingleRegister:
+			return buildWriteSingleRegister(sensor);
 
-			case WriteMultipleCoils:
-				return buildWriteMultipleCoils(sensor);
+		case WriteMultipleCoils:
+			return buildWriteMultipleCoils(sensor);
 
-			case WriteMultipleRegisters:
-				return buildWriteMultipleRegisters(sensor);
+		case WriteMultipleRegisters:
+			return buildWriteMultipleRegisters(sensor);
 
-			case MaskWriteRegister:
-				return buildMaskWriteRegister(sensor);
+		case MaskWriteRegister:
+			return buildMaskWriteRegister(sensor);
 
-			default:
-				return null;
+		default:
+			return null;
 		}
 
 	}
@@ -432,7 +432,7 @@ public class DataCollectionSession implements Runnable {
 		}
 
 		ModbusRequest request = buildRequet(sensor);
-		adhocPayload = new ModbusRtuPayload("", sensor.getSalveId().shortValue(), request);
+		adhocPayload = new ModbusRtuPayload("", device.getSalveId().shortValue(), request);
 		adhocRequestPromise = new CompletableFuture<Boolean>();
 
 		return adhocRequestPromise;

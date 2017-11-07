@@ -33,7 +33,7 @@ public abstract class AbstractSession<Req, Res> implements Session<Req, Res> {
 
 	private ScheduledFuture<?> gatherRoutine = null;
 
-	private Channel channel = null;
+	protected Channel channel = null;
 
 	@Override
 	public void bind(Channel channel) {
