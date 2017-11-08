@@ -25,6 +25,7 @@ public class ModbusRtuServiceApplication {
 		try {
 			slave.run();
 		} catch (Exception e) {
+			e.printStackTrace();
 			_log.error("Modbus Rtu Server Error: " + e.getMessage());
 		}
 

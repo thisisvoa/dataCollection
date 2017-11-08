@@ -32,7 +32,7 @@ import org.springframework.util.StringUtils;
  */
 public class RtuServiceImpl implements ModbusSlaveRtuApiService {
 	private static Logger _log = LoggerFactory.getLogger(RtuServiceImpl.class);
-	private DeviceUtil deviceUtil = SpringContextUtil.getBean(DeviceUtil.class);
+	private DeviceUtil deviceUtil = null;
 
 	private final ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 	private ConcurrentMap<String, ChannelId> dtuChannels = new ConcurrentHashMap<String, ChannelId>();
@@ -54,6 +54,7 @@ public class RtuServiceImpl implements ModbusSlaveRtuApiService {
 	}
 
 	private Session<?, ?> getSession(String deviceId) {
+		init();
 		Session<?, ?> result = null;
 		String dtuId = deviceUtil.getDtuId(deviceId);
 		if (!StringUtils.isEmpty(dtuId)){
@@ -70,6 +71,7 @@ public class RtuServiceImpl implements ModbusSlaveRtuApiService {
 
 	@Override
 	public boolean writeData(String deviceId, EamSensor sensor) {
+
 
 		_log.info("Device Id [ {} ] Write Data [ {} ]", deviceId, sensor);
 
@@ -107,5 +109,11 @@ public class RtuServiceImpl implements ModbusSlaveRtuApiService {
 	public void registerDtuChannel(String dtuId, Channel channel) {
 		channels.add(channel);
 		dtuChannels.put(dtuId, channel.id());
+	}
+
+	private void init(){
+		if(deviceUtil == null){
+			deviceUtil = SpringContextUtil.getBean(DeviceUtil.class);
+		}
 	}
 }

@@ -185,9 +185,11 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 	private void initEquipmentRunners() {
 		devices = deviceUtil.getDevices(dtuId);
 		futures = new ArrayList<>();
+		int period = getModbusRtuPeriod() * 1000;
 		for (EamEquipment d : devices) {
+			logger.info("Device ID [{}], period [{}]", d.getEquipmentId(), period);
 			ScheduledFuture<?> future = channel.eventLoop().scheduleAtFixedRate(new EquipmentRequestRunner(d), 0,
-					getModbusRtuPeriod(), TimeUnit.MILLISECONDS);
+					period, TimeUnit.MILLISECONDS);
 			futures.add(future);
 		}
 
