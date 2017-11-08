@@ -15,10 +15,12 @@ import io.netty.channel.SimpleChannelInboundHandler;
  *    
  * @author youjun
  *
- * @param <Res>
+ * @param <I> 
+ * 
+ * since SimpleChannelInboundHandler use I as the typeparameter and doing some magic things, we follow up.
  */
 @ChannelHandler.Sharable
-public class ProtocolMessageHandler<Res> extends SimpleChannelInboundHandler<Res> {
+public class ProtocolMessageHandler<I> extends SimpleChannelInboundHandler<I> {
 	private static final Logger logger = LoggerFactory.getLogger(ProtocolMessageHandler.class);
 
 	@Override
@@ -32,9 +34,9 @@ public class ProtocolMessageHandler<Res> extends SimpleChannelInboundHandler<Res
 	}
 
 	@Override
-	public void channelRead0(ChannelHandlerContext ctx, Res payload) throws Exception {
+	public void channelRead0(ChannelHandlerContext ctx, I payload) throws Exception {
 		@SuppressWarnings("unchecked")
-		Session<?, Res> session = ctx.channel().attr(AbstractSession.SERVER_SESSION_KEY).get();
+		Session<?, I> session = ctx.channel().attr(AbstractSession.SERVER_SESSION_KEY).get();
 		logger.info("get response payload [{}] from channel [{}]", payload.toString(), session.getSessionId());
 		session.saveData(payload);
 	}
