@@ -4,6 +4,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 
+import com.digitalpetri.modbus.requests.ModbusRequest;
+import com.kuyun.common.DeviceUtil;
+import com.kuyun.common.util.SpringContextUtil;
+import com.kuyun.eam.dao.model.EamEquipment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +22,7 @@ import io.netty.channel.ChannelId;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.util.concurrent.GlobalEventExecutor;
+import org.springframework.util.StringUtils;
 
 /**
  * 
@@ -27,9 +32,10 @@ import io.netty.util.concurrent.GlobalEventExecutor;
  */
 public class RtuServiceImpl implements ModbusSlaveRtuApiService {
 	private static Logger _log = LoggerFactory.getLogger(RtuServiceImpl.class);
+	private DeviceUtil deviceUtil = SpringContextUtil.getBean(DeviceUtil.class);
 
 	private final ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
-	private ConcurrentMap<String, ChannelId> deviceChannels = new ConcurrentHashMap<String, ChannelId>();
+	private ConcurrentMap<String, ChannelId> dtuChannels = new ConcurrentHashMap<String, ChannelId>();
 
 	@Override
 	public void startJob(String deviceId) {
@@ -49,11 +55,14 @@ public class RtuServiceImpl implements ModbusSlaveRtuApiService {
 
 	private Session<?, ?> getSession(String deviceId) {
 		Session<?, ?> result = null;
-		ChannelId channelId = deviceChannels.get(deviceId);
-		if (channelId != null) {
-			Channel channel = channels.find(channelId);
-			if (channel != null) {
-				result = channel.attr(AbstractSession.SERVER_SESSION_KEY).get();
+		String dtuId = deviceUtil.getDtuId(deviceId);
+		if (!StringUtils.isEmpty(dtuId)){
+			ChannelId channelId = dtuChannels.get(dtuId);
+			if (channelId != null) {
+				Channel channel = channels.find(channelId);
+				if (channel != null) {
+					result = channel.attr(AbstractSession.SERVER_SESSION_KEY).get();
+				}
 			}
 		}
 		return result;
@@ -70,9 +79,10 @@ public class RtuServiceImpl implements ModbusSlaveRtuApiService {
 		Session<ModbusRtuPayload, ?> session = (Session<ModbusRtuPayload, ?>) getSession(deviceId);
 		if (session != null) {
 			try {
-				// TODO: here should construct the right payload
-				ModbusRtuPayload payload = new ModbusRtuPayload("", (short) 1, null);
-				result = (session.sendRequest(payload).get() != null);
+				ModbusRtuPayload payload = buildModbusRtuPayload(deviceId, sensor, session);
+				if (payload != null){
+					result = (session.sendRequest(payload).get() != null);
+				}
 			} catch (InterruptedException | ExecutionException e) {
 				_log.error("Device Id [ {} ] Write Data [ {} ] Error [ {} ]", deviceId, sensor, e.getMessage());
 			}
@@ -82,8 +92,20 @@ public class RtuServiceImpl implements ModbusSlaveRtuApiService {
 		return result;
 	}
 
-	public void registerDeviceChannel(String deviceId, Channel channel) {
+	private ModbusRtuPayload buildModbusRtuPayload(String deviceId, EamSensor sensor, Session<ModbusRtuPayload, ?> session){
+		ModbusRtuPayload payload = null;
+		if (session instanceof RtuSession){
+			ModbusRequest request = ((RtuSession)session).buildRequet(sensor);
+			EamEquipment device = deviceUtil.getDevice(deviceId);
+			if (device != null){
+				payload = new ModbusRtuPayload("", device.getSalveId().shortValue(), request);
+			}
+		}
+		return payload;
+	}
+
+	public void registerDtuChannel(String dtuId, Channel channel) {
 		channels.add(channel);
-		deviceChannels.put(deviceId, channel.id());
+		dtuChannels.put(dtuId, channel.id());
 	}
 }

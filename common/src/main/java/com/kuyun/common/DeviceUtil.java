@@ -43,6 +43,12 @@ public class DeviceUtil {
 	@Autowired
 	private EamApiService eamApiService;
 
+	@Autowired
+	private EamDtuService dtuService;
+
+	@Autowired
+	private EamDtuEquipmentService dtuEquipmentService;
+
 	Map<String, EamEquipment> deviceMap = new ConcurrentHashMap<>(1000);
 
 	public EamSensorDataService getEamSensorDataService() {
@@ -73,8 +79,6 @@ public class DeviceUtil {
 
 	private EamEquipment getDeviceFromDB(String deviceId) {
 		EamEquipment result = eamEquipmentService.selectByPrimaryKey(deviceId);
-		;
-
 		if (result != null) {
 			EamSensorExample sensorExample = new EamSensorExample();
 			List<Integer> propertyIds = getEquipmentModelPropertyIds(result);
@@ -158,7 +162,6 @@ public class DeviceUtil {
 		List<EamSensor> result = new ArrayList<>();
 
 		EamEquipment equipment = eamEquipmentService.selectByPrimaryKey(deviceId);
-		;
 
 		if (equipment != null) {
 			EamSensorExample sensorExample = new EamSensorExample();
@@ -230,17 +233,49 @@ public class DeviceUtil {
 	}
 
 	/************************************************/
-	// TODO: Function need to implement
-
-	public boolean isDtuId(String id) {
+	public boolean isDtuId(String dtuId) {
 		// check the id is DTU or not.
-
-		return true;
+		boolean result = false;
+		EamDtu dtu = dtuService.selectByPrimaryKey(dtuId);
+		if (dtu != null){
+			result = true;
+		}
+		return result;
 	}
 
 	public List<EamEquipment> getDevices(String dtuId) {
 		// need to retrieve from DB
-		return null;
+		EamDtuEquipmentExample example = new EamDtuEquipmentExample();
+		example.createCriteria().andDtuIdEqualTo(dtuId).andDeleteFlagEqualTo(Boolean.FALSE);
+		List<EamDtuEquipment> dtuEquipments = dtuEquipmentService.selectByExample(example);
+
+		List<EamEquipment> result = new ArrayList<>();
+		if (dtuEquipments != null && !dtuEquipments.isEmpty()){
+			List<String> equipmentIds = dtuEquipments.stream().map(e -> e.getEquipmentId()).collect(Collectors.toList());
+
+			EamEquipmentExample equipmentExample = new EamEquipmentExample();
+			equipmentExample.createCriteria().andEquipmentIdIn(equipmentIds).andDeleteFlagEqualTo(Boolean.FALSE);
+
+			result = eamEquipmentService.selectByExample(equipmentExample);
+		}
+
+		return result;
+	}
+
+	public String getDtuId(String deviceId){
+		String result = null;
+		EamDtuEquipmentExample example = new EamDtuEquipmentExample();
+		example.createCriteria().andDeleteFlagEqualTo(Boolean.FALSE).andEquipmentIdEqualTo(deviceId);
+
+		EamDtuEquipment dtuEquipment = dtuEquipmentService.selectFirstByExample(example);
+		if (dtuEquipment != null){
+			result = dtuEquipment.getDtuId();
+		}
+		return result;
+	}
+
+	public EamDtu getEamDtu(String dtuId){
+		return dtuService.selectByPrimaryKey(dtuId);
 	}
 
 }

@@ -24,8 +24,8 @@ public class ProtocolMessageHandler<Res> extends SimpleChannelInboundHandler<Res
 	@Override
 	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
 		Session<?, ?> session = ctx.channel().attr(AbstractSession.SERVER_SESSION_KEY).get();
-		logger.info("[{}] channelInactive", session.getSessionId());
 		if (session != null) {
+			logger.info("[{}] channelInactive", session.getSessionId());
 			session.stopGather();
 		}
 

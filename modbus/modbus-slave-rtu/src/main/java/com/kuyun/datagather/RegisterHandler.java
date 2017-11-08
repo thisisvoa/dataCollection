@@ -36,9 +36,9 @@ public class RegisterHandler extends ChannelInboundHandlerAdapter {
 		ByteBuf buffer = (ByteBuf) msg;
 
 		if (buffer.isReadable(DTU_ID_LENGTH)) {
-			ByteBuf deviceIdBuf = buffer.readBytes(DTU_ID_LENGTH);
-			dtuId = deviceIdBuf.toString(UTF_8);
-			ReferenceCountUtil.release(deviceIdBuf);
+			ByteBuf dtuIdBuf = buffer.readBytes(DTU_ID_LENGTH);
+			dtuId = dtuIdBuf.toString(UTF_8);
+			ReferenceCountUtil.release(dtuIdBuf);
 			ReferenceCountUtil.release(msg);// more data will be discard, if it comes with register message
 		}
 
@@ -70,7 +70,7 @@ public class RegisterHandler extends ChannelInboundHandlerAdapter {
 			// init session
 			new RtuSession(dtuId, deviceUtil, ctx.channel());
 			// register to rpc service
-			rpcService.registerDeviceChannel(dtuId, ctx.channel());
+			rpcService.registerDtuChannel(dtuId, ctx.channel());
 			logger.info("DTU {} is online now.", dtuId);
 
 			ctx.pipeline().remove(this);

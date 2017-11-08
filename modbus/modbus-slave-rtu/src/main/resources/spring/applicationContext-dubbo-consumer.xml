@@ -31,4 +31,8 @@
 
     <dubbo:reference id="eamApiService" interface="com.kuyun.eam.rpc.api.EamApiService" mock="true"/>
 
+    <dubbo:reference id="eamDtuService" interface="com.kuyun.eam.rpc.api.EamDtuService" mock="true"/>
+
+    <dubbo:reference id="eamDtuEquipmentService" interface="com.kuyun.eam.rpc.api.EamDtuEquipmentService" mock="true"/>
+
 </beans>

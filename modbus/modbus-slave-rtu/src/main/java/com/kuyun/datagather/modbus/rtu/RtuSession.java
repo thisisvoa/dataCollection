@@ -1,10 +1,17 @@
 package com.kuyun.datagather.modbus.rtu;
 
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
+import com.digitalpetri.modbus.responses.*;
+import com.kuyun.eam.dao.model.EamDtu;
+import com.kuyun.modbus.slave.ChannelJob;
+import io.netty.buffer.ByteBufUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +28,6 @@ import com.digitalpetri.modbus.requests.WriteMultipleCoilsRequest;
 import com.digitalpetri.modbus.requests.WriteMultipleRegistersRequest;
 import com.digitalpetri.modbus.requests.WriteSingleCoilRequest;
 import com.digitalpetri.modbus.requests.WriteSingleRegisterRequest;
-import com.digitalpetri.modbus.responses.ExceptionResponse;
 import com.kuyun.common.DeviceUtil;
 import com.kuyun.datagather.AbstractSession;
 import com.kuyun.eam.dao.model.EamEquipment;
@@ -31,6 +37,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 
+import static com.digitalpetri.modbus.FunctionCode.*;
+import static io.netty.buffer.Unpooled.buffer;
+
 public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPayload> {
 
 	private static final Logger logger = LoggerFactory.getLogger(RtuSession.class);
@@ -39,10 +48,12 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 
 	private DeviceUtil deviceUtil;
 
+	private int MAX_ADDRESS_INTERVAL = 5;
+
 	/**
 	 * init session and do the right things
 	 * 
-	 * @param dtuid
+	 * @param dtuId
 	 * @param deviceUtil
 	 * @param channel
 	 */
@@ -62,8 +73,10 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 			logger.error("encounter empty request or response. session id [{}]", getSessionId());
 			return false;
 		}
-		if (req.getUnitId() != res.getUnitId())
+		if (req.getUnitId() != res.getUnitId()){
 			return false;
+		}
+
 
 		ModbusPdu resPdu = res.getModbusPdu();
 		ModbusPdu reqPdu = req.getModbusPdu();
@@ -89,6 +102,55 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 	protected void saveRoutionRequestData(ModbusRtuPayload res) {
 
 		// TODO: save the data to db
+		ByteBuf buffer =  buffer(128);
+
+		if (res.getModbusPdu() instanceof ExceptionResponse){
+			int exceptionCode = ((ExceptionResponse) res.getModbusPdu()).getExceptionCode().getCode();
+			logger.info("exceptionCode="+ exceptionCode);
+		}else {
+			switch (res.getModbusPdu().getFunctionCode()) {
+				case ReadCoils:
+					buffer = ((ReadCoilsResponse)res.getModbusPdu()).getCoilStatus();
+					break;
+
+				case ReadDiscreteInputs:
+					buffer = ((ReadDiscreteInputsResponse)res.getModbusPdu()).getInputStatus();
+					break;
+
+				case ReadHoldingRegisters:
+					buffer = ((ReadHoldingRegistersResponse)res.getModbusPdu()).getRegisters();
+					break;
+
+				case ReadInputRegisters:
+					buffer = ((ReadInputRegistersResponse)res.getModbusPdu()).getRegisters();
+					break;
+
+				case WriteSingleCoil:
+					break;
+
+				case WriteSingleRegister:
+					break;
+
+				case WriteMultipleCoils:
+					break;
+
+				case WriteMultipleRegisters:
+					break;
+
+				case MaskWriteRegister:
+					break;
+				default:
+
+					break;
+			}
+		}
+
+		String data = ByteBufUtil.hexDump(buffer);
+
+		logger.info("dtu Id = [ {} ]", dtuId);
+		logger.info("device Id = [ {} ]", res.getUnitId());
+		logger.info("client response = [ {} ]", data);
+
 		// deviceUtil.persistDB(deviceId, unitId, allData);
 
 	}
@@ -121,21 +183,26 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 	}
 
 	private void initEquipmentRunners() {
-
 		devices = deviceUtil.getDevices(dtuId);
 		futures = new ArrayList<>();
 		for (EamEquipment d : devices) {
 			ScheduledFuture<?> future = channel.eventLoop().scheduleAtFixedRate(new EquipmentRequestRunner(d), 0,
-					d.getModbusRtuPeriod(), TimeUnit.MILLISECONDS);
+					getModbusRtuPeriod(), TimeUnit.MILLISECONDS);
 			futures.add(future);
 		}
 
 	}
 
-	private class EquipmentRequestRunner implements Runnable {
+	private int getModbusRtuPeriod(){
+		int period = 20;
+		EamDtu dtu = deviceUtil.getEamDtu(dtuId);
+		if (dtu != null && dtu.getModbusRtuPeriod() != null){
+			period = dtu.getModbusRtuPeriod();
+		}
+		return period;
+	}
 
-		// private EamEquipment device;
-		// TODO: this payload should merge the same operation code into one request?
+	private class EquipmentRequestRunner implements Runnable {
 		private ModbusRtuPayload[] allPayload;
 		private int currentPosition = 0;
 
@@ -151,7 +218,6 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 
 		public EquipmentRequestRunner(EamEquipment device) {
 			super();
-			// this.device = device;
 			allPayload = loadAllPayload(device);
 		}
 
@@ -160,20 +226,77 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 	// load all payload;
 	private ModbusRtuPayload[] loadAllPayload(EamEquipment device) {
 
-		List<EamSensor> sensors = deviceUtil.getSensors(device.getEquipmentId());
-		ModbusRtuPayload[] allPayload = new ModbusRtuPayload[sensors.size()];
-		int index = 0;
-		for (EamSensor sensor : sensors) {
-			if (getFunctionCode(sensor).isRead()) {
-				ModbusRequest request = buildRequet(sensor);
-				allPayload[index++] = new ModbusRtuPayload("", device.getSalveId().shortValue(), request);
+		List<ModbusRtuPayload> payloads = new ArrayList<>();
+
+		List<EamSensor> allSensors = deviceUtil.getSensors(device.getEquipmentId());
+		Map<Integer, List<EamSensor>> groupByFunctionCodeMap = allSensors.stream()
+				.collect(Collectors.groupingBy(sensor -> sensor.getFunctionCode()));
+
+		for (Map.Entry<Integer, List<EamSensor>> entry : groupByFunctionCodeMap.entrySet()) {
+
+			FunctionCode functionCode = FunctionCode.fromCode(entry.getKey().intValue()).get();
+
+			List<EamSensor> sortedSensors = entry.getValue().stream().sorted((s1, s2) -> s1.getAddress().compareTo(s2.getAddress()))
+					.collect(Collectors.toList());
+
+			logger.info("SalveId=" + device.getSalveId());
+			logger.info("FunctionCode=" + entry.getKey());
+			logger.info("sensor size=" + sortedSensors.size());
+
+			// combine to read request
+			if (functionCode.isRead()) {
+				List<List<EamSensor>> groupSensors = groupByAddress(sortedSensors);
+
+				for(List<EamSensor> sensors : groupSensors){
+					//print
+					sensors.forEach(sensor -> {
+						logger.info("sensor {{}}", sensor);
+					});
+
+					ModbusRequest request = buildRequet(sensors);
+					payloads.add(new ModbusRtuPayload("", device.getSalveId().shortValue(), request));
+				}
 			}
 		}
 
-		return allPayload;
+		return payloads.toArray(new ModbusRtuPayload[payloads.size()]);
 	}
 
-	private ModbusRequest buildRequet(EamSensor sensor) {
+
+
+	private List<List<EamSensor>> groupByAddress(List<EamSensor> sensors){
+		List<List<EamSensor>> result = new ArrayList<List<EamSensor>>();
+		List<EamSensor> group = new ArrayList<>();
+		group.add(sensors.get(0));
+		result.add(group);
+
+		for(int i = 1; i < sensors.size(); i++){
+			EamSensor second = sensors.get(i);
+			EamSensor first = result.get(result.size() - 1).get(group.size() - 1);
+
+			if (isTogether(first, second)){
+				result.get(result.size() - 1).add(second);
+			}else {
+				group = new ArrayList<>();
+				group.add(second);
+				result.add(group);
+			}
+
+		}
+
+		return result;
+	}
+
+	private boolean isTogether(EamSensor first, EamSensor second){
+		boolean result = false;
+		if (second.getAddress() - first.getAddress() <= MAX_ADDRESS_INTERVAL){
+			result = true;
+		}
+		return result;
+	}
+
+
+	public ModbusRequest buildRequet(EamSensor sensor) {
 		switch (getFunctionCode(sensor)) {
 		case ReadCoils:
 			return buildReadCoils(sensor);
@@ -206,6 +329,55 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 			return null;
 		}
 
+	}
+
+	private ModbusRequest buildRequet(List<EamSensor> sensors) {
+		switch (getFunctionCode(sensors.get(0))) {
+			case ReadCoils:
+				return buildReadCoils(sensors);
+
+			case ReadDiscreteInputs:
+				return buildReadDiscreteInputs(sensors);
+
+			case ReadHoldingRegisters:
+				return buildReadHoldingRegisters(sensors);
+
+			case ReadInputRegisters:
+				return buildReadInputRegisters(sensors);
+			default:
+				return null;
+		}
+	}
+
+	private ModbusRequest buildReadCoils(List<EamSensor> sensors) {
+		int address = sensors.get(0).getAddress();
+		int quantity = sensors.get(sensors.size() - 1).getAddress() + 1;
+//		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
+		return new ReadCoilsRequest(address, quantity);
+	}
+
+	private ReadDiscreteInputsRequest buildReadDiscreteInputs(List<EamSensor> sensors) {
+		int address = sensors.get(0).getAddress();
+		int quantity = sensors.get(sensors.size() - 1).getAddress() + 1;
+//		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
+
+		return new ReadDiscreteInputsRequest(address, quantity);
+	}
+
+	private ReadHoldingRegistersRequest buildReadHoldingRegisters(List<EamSensor> sensors) {
+		int address = sensors.get(0).getAddress();
+		int quantity = sensors.get(sensors.size() - 1).getAddress() + 1;
+//		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
+
+		return new ReadHoldingRegistersRequest(address, quantity);
+	}
+
+	private ReadInputRegistersRequest buildReadInputRegisters(List<EamSensor> sensors) {
+		int address = sensors.get(0).getAddress();
+		int quantity = sensors.get(sensors.size() - 1).getAddress() + 1;
+//		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
+
+		return new ReadInputRegistersRequest(address, quantity);
 	}
 
 	private FunctionCode getFunctionCode(EamSensor sensor) {
