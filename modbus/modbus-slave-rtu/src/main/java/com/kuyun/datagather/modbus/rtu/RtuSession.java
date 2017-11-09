@@ -3,6 +3,7 @@ package com.kuyun.datagather.modbus.rtu;
 import static io.netty.buffer.Unpooled.buffer;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
@@ -50,6 +51,8 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 	private DeviceUtil deviceUtil;
 
 	private int MAX_ADDRESS_INTERVAL = 5;
+
+	private Map<ModbusRtuPayload, List<EamSensor>> map = new HashMap<>();
 
 	/**
 	 * init session and do the right things
@@ -100,7 +103,7 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 	}
 
 	@Override
-	protected void saveRoutionRequestData(ModbusRtuPayload res) {
+	protected void saveRoutionRequestData(ModbusRtuPayload req, ModbusRtuPayload res) {
 
 		// TODO: save the data to db
 		ByteBuf buffer =  buffer(128);
@@ -149,10 +152,14 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 		String data = ByteBufUtil.hexDump(buffer);
 
 		logger.info("dtu Id = [ {} ]", dtuId);
-		logger.info("device Id = [ {} ]", res.getUnitId());
+		logger.info("salve Id = [ {} ]", res.getUnitId());
 		logger.info("client response = [ {} ]", data);
+		List<EamSensor> sensors = map.get(req);
+//		sensors.forEach(sensor -> {
+//			logger.info("sensor {{}}", sensor);
+//		});
 
-		// deviceUtil.persistDB(deviceId, unitId, allData);
+		deviceUtil.persistDB(dtuId, res.getUnitId(), data, sensors);
 
 	}
 
@@ -258,7 +265,9 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 					});
 
 					ModbusRequest request = buildRequet(sensors);
-					payloads.add(new ModbusRtuPayload("", device.getSalveId().shortValue(), request));
+					ModbusRtuPayload payload = new ModbusRtuPayload("", device.getSalveId().shortValue(), request);
+					map.put(payload, sensors);
+					payloads.add(payload);
 				}
 			}
 		}
@@ -355,14 +364,14 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 
 	private ModbusRequest buildReadCoils(List<EamSensor> sensors) {
 		int address = sensors.get(0).getAddress();
-		int quantity = sensors.get(sensors.size() - 1).getAddress() + 1;
+		int quantity = sensors.get(sensors.size() - 1).getAddress();
 //		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
 		return new ReadCoilsRequest(address, quantity);
 	}
 
 	private ReadDiscreteInputsRequest buildReadDiscreteInputs(List<EamSensor> sensors) {
 		int address = sensors.get(0).getAddress();
-		int quantity = sensors.get(sensors.size() - 1).getAddress() + 1;
+		int quantity = sensors.get(sensors.size() - 1).getAddress();
 //		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
 
 		return new ReadDiscreteInputsRequest(address, quantity);
@@ -370,7 +379,7 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 
 	private ReadHoldingRegistersRequest buildReadHoldingRegisters(List<EamSensor> sensors) {
 		int address = sensors.get(0).getAddress();
-		int quantity = sensors.get(sensors.size() - 1).getAddress() + 1;
+		int quantity = sensors.get(sensors.size() - 1).getAddress();
 //		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
 
 		return new ReadHoldingRegistersRequest(address, quantity);
@@ -378,7 +387,7 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 
 	private ReadInputRegistersRequest buildReadInputRegisters(List<EamSensor> sensors) {
 		int address = sensors.get(0).getAddress();
-		int quantity = sensors.get(sensors.size() - 1).getAddress() + 1;
+		int quantity = sensors.get(sensors.size() - 1).getAddress();
 //		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
 
 		return new ReadInputRegistersRequest(address, quantity);

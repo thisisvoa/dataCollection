@@ -133,6 +133,22 @@ public class DeviceUtil {
 		return result;
 	}
 
+	public void persistDB(String dtuId, short unitId, String allData, List<EamSensor> sensors) {
+		EamEquipment device = getDevice(dtuId, unitId);
+		if (device != null){
+			int startAddress = sensors.get(0).getAddress();
+			for (EamSensor sensor : sensors) {
+				int currentAddress = sensor.getAddress();
+				String dataFormat = sensor.getDataFormat();
+				String bitOrder = sensor.getBitOrder();
+				String data = CommonUtil.covenrtHexToNumber(startAddress, currentAddress, allData, dataFormat, bitOrder);
+				data = exchangeData(sensor, data);
+				logger.info("DtuId [{}], deviceId [{}], address Id [{}], data [{}]", dtuId, device.getEquipmentId(), sensor.getAddress(), data);
+				eamApiService.processData(device.getEquipmentId(), sensor.getSensorId(), data);
+			}
+		}
+	}
+
 	public void persistDB(String deviceId, int unitId, String allData) {
 		List<EamSensor> sensors = getSensors(deviceId, unitId);
 		for (EamSensor sensor : sensors) {
@@ -262,6 +278,20 @@ public class DeviceUtil {
 		return result;
 	}
 
+	public EamEquipment getDevice(String dtuId, int slaveId){
+		EamEquipment result = null;
+		List<EamEquipment> devices = getDevices(dtuId);
+		if (!devices.isEmpty()){
+			for (EamEquipment device : devices){
+				if (device.getSalveId() == slaveId){
+					result = device;
+					break;
+				}
+			}
+		}
+		return result;
+	}
+
 	public String getDtuId(String deviceId){
 		String result = null;
 		EamDtuEquipmentExample example = new EamDtuEquipmentExample();
@@ -277,5 +307,6 @@ public class DeviceUtil {
 	public EamDtu getEamDtu(String dtuId){
 		return dtuService.selectByPrimaryKey(dtuId);
 	}
+
 
 }

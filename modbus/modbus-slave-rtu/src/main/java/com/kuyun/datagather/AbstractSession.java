@@ -85,7 +85,7 @@ public abstract class AbstractSession<Req, Res> implements Session<Req, Res> {
 	 * 
 	 * @param res
 	 */
-	protected abstract void saveRoutionRequestData(Res res);
+	protected abstract void saveRoutionRequestData(Req req, Res res);
 
 	@Override
 	public void saveData(Res res) {
@@ -100,7 +100,7 @@ public abstract class AbstractSession<Req, Res> implements Session<Req, Res> {
 			responseFuture.get().complete(res);
 			responseFuture.set(null);
 		} else {
-			saveRoutionRequestData(res);
+			saveRoutionRequestData(latestRequest.request, res);
 		}
 
 		retryCount = 0;
@@ -163,7 +163,6 @@ public abstract class AbstractSession<Req, Res> implements Session<Req, Res> {
 	 * @author youjun
 	 *
 	 * @param <Req>
-	 * @param <T>
 	 */
 	public static class Decorator<Req> {
 
