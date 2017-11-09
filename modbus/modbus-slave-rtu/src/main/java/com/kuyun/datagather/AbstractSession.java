@@ -45,7 +45,7 @@ public abstract class AbstractSession<Req, Res> implements Session<Req, Res> {
 	public boolean startGather() {
 		try {
 			gatherRoutine = channel.eventLoop().scheduleAtFixedRate(new GatherRunner(), 0, runningInterval,
-					TimeUnit.MICROSECONDS);
+					TimeUnit.MILLISECONDS);
 			return true;
 		} catch (Exception e) {
 			return false;

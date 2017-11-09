@@ -2,7 +2,6 @@ package com.kuyun.datagather.modbus.rtu;
 
 import com.digitalpetri.modbus.codec.ModbusRequestEncoder;
 import com.digitalpetri.modbus.codec.ModbusResponseDecoder;
-import com.digitalpetri.modbus.codec.ModbusRtuPayload;
 import com.kuyun.datagather.ProtocolChannelInitializer;
 
 import io.netty.channel.Channel;
