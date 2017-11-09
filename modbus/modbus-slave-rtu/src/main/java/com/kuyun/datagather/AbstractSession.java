@@ -19,7 +19,7 @@ public abstract class AbstractSession<Req, Res> implements Session<Req, Res> {
 
 	protected int runningInterval = 1000; // default to 1 second
 	protected int maxTryCount = 5; // 5 times
-	protected int timeoutInterval = 10; // 10s
+	protected int timeoutInterval = 10000; // 10s
 
 	private SessionState state = SessionState.IDEL;
 	private int retryCount = 0;
@@ -145,7 +145,7 @@ public abstract class AbstractSession<Req, Res> implements Session<Req, Res> {
 				}
 				break;
 			case TIME_OUT:
-				if (++retryCount > maxTryCount) {
+				if (++retryCount >= maxTryCount) {
 					logger.error("exceed max retry times, connection closed. device ID [{}]", getSessionId());
 					channel.close();
 				}

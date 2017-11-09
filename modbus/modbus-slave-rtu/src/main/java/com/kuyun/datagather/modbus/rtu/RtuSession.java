@@ -221,6 +221,7 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 		public EquipmentRequestRunner(EamEquipment device) {
 			super();
 			allPayload = loadAllPayload(device);
+			logger.info("all Payload Size [{}]", allPayload.length);
 		}
 
 	}
