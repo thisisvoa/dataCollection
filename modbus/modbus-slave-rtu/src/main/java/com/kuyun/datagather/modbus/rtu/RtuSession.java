@@ -1,6 +1,7 @@
 package com.kuyun.datagather.modbus.rtu;
 
-import java.util.AbstractList;
+import static io.netty.buffer.Unpooled.buffer;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -8,10 +9,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.digitalpetri.modbus.responses.*;
-import com.kuyun.eam.dao.model.EamDtu;
-import com.kuyun.modbus.slave.ChannelJob;
-import io.netty.buffer.ByteBufUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,17 +25,21 @@ import com.digitalpetri.modbus.requests.WriteMultipleCoilsRequest;
 import com.digitalpetri.modbus.requests.WriteMultipleRegistersRequest;
 import com.digitalpetri.modbus.requests.WriteSingleCoilRequest;
 import com.digitalpetri.modbus.requests.WriteSingleRegisterRequest;
+import com.digitalpetri.modbus.responses.ExceptionResponse;
+import com.digitalpetri.modbus.responses.ReadCoilsResponse;
+import com.digitalpetri.modbus.responses.ReadDiscreteInputsResponse;
+import com.digitalpetri.modbus.responses.ReadHoldingRegistersResponse;
+import com.digitalpetri.modbus.responses.ReadInputRegistersResponse;
 import com.kuyun.common.DeviceUtil;
 import com.kuyun.datagather.AbstractSession;
+import com.kuyun.eam.dao.model.EamDtu;
 import com.kuyun.eam.dao.model.EamEquipment;
 import com.kuyun.eam.dao.model.EamSensor;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-
-import static com.digitalpetri.modbus.FunctionCode.*;
-import static io.netty.buffer.Unpooled.buffer;
 
 public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPayload> {
 
