@@ -136,6 +136,7 @@ public class DeviceUtil {
 	public void persistDB(String dtuId, short unitId, String allData, List<EamSensor> sensors) {
 		EamEquipment device = getDevice(dtuId, unitId);
 		if (device != null){
+			setOnline(device);
 			int startAddress = sensors.get(0).getAddress();
 			for (EamSensor sensor : sensors) {
 				int currentAddress = sensor.getAddress();

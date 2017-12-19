@@ -39,24 +39,22 @@ public class RtuServiceImpl implements ModbusSlaveRtuApiService {
 
 	@Override
 	public void startJob(String deviceId) {
-		Session<?, ?> session = getSession(deviceId);
+		Session<?, ?> session = getSessionByDeviceId(deviceId);
 		if (session != null) {
-			session.startGather();
+			session.startGather(deviceId);
 		}
 	}
 
 	@Override
 	public void pauseJob(String deviceId) {
-		Session<?, ?> session = getSession(deviceId);
+		Session<?, ?> session = getSessionByDeviceId(deviceId);
 		if (session != null) {
-			session.stopGather();
+			session.stopGather(deviceId);
 		}
 	}
 
-	private Session<?, ?> getSession(String deviceId) {
-		init();
+	private Session<?, ?> getSession(String dtuId) {
 		Session<?, ?> result = null;
-		String dtuId = deviceUtil.getDtuId(deviceId);
 		if (!StringUtils.isEmpty(dtuId)){
 			ChannelId channelId = dtuChannels.get(dtuId);
 			if (channelId != null) {
@@ -67,6 +65,12 @@ public class RtuServiceImpl implements ModbusSlaveRtuApiService {
 			}
 		}
 		return result;
+	}
+
+	private Session<?, ?> getSessionByDeviceId(String deviceId) {
+		init();
+		String dtuId = deviceUtil.getDtuId(deviceId);
+		return getSession(dtuId);
 	}
 
 	@Override

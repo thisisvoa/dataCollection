@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -105,7 +106,6 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 	@Override
 	protected void saveRoutionRequestData(ModbusRtuPayload req, ModbusRtuPayload res) {
 
-		// TODO: save the data to db
 		ByteBuf buffer =  buffer(128);
 
 		if (res.getModbusPdu() instanceof ExceptionResponse){
@@ -155,9 +155,7 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 		logger.info("salve Id = [ {} ]", res.getUnitId());
 		logger.info("client response = [ {} ]", data);
 		List<EamSensor> sensors = map.get(req);
-//		sensors.forEach(sensor -> {
-//			logger.info("sensor {{}}", sensor);
-//		});
+
 
 		deviceUtil.persistDB(dtuId, res.getUnitId(), data, sensors);
 
@@ -170,44 +168,75 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 	}
 
 	@Override
+	public boolean startGather(String deviceId) {
+		boolean result = false;
+		EamEquipment d = deviceUtil.getDevice(deviceId);
+		if (d != null){
+			ScheduledFuture<?> future = channel.eventLoop().scheduleAtFixedRate(new EquipmentRequestRunner(d), 0,
+					getModbusRtuPeriod(d) * 1000 , TimeUnit.MILLISECONDS);
+			mapFuture.put(d.getEquipmentId(), future);
+			//deviceUtil.setOnline(d);
+			result = true;
+		}
+		return result;
+	}
+
+	@Override
 	public boolean stopGather() {
 		stopEquipmentRunners();
 		return super.stopGather();
 	}
 
+	@Override
+	public boolean stopGather(String deviceId) {
+		boolean result = false;
+		ScheduledFuture<?> f = mapFuture.get(deviceId);
+		if (f != null){
+			f.cancel(false);
+			mapFuture.remove(f);
+			EamEquipment d = deviceUtil.getDevice(deviceId);
+			if ( d != null){
+				deviceUtil.setOffline(d);
+			}
+			result = true;
+		}
+		return result;
+	}
+
 	// private functions:
 
-	private List<EamEquipment> devices;
-	private List<java.util.concurrent.ScheduledFuture<?>> futures;
+	private Map<String, java.util.concurrent.ScheduledFuture<?>> mapFuture = new ConcurrentHashMap<>();
 
 	private void stopEquipmentRunners() {
-		if (futures != null) {
-			for (ScheduledFuture<?> f : futures) {
-				f.cancel(false);
+		for ( Map.Entry<String, ScheduledFuture<?>> entry : mapFuture.entrySet()){
+			String deviceId = entry.getKey();
+			EamEquipment d = deviceUtil.getDevice(deviceId);
+			if ( d != null){
+				deviceUtil.setOffline(d);
 			}
-			futures = null;
-			devices = null;
+			ScheduledFuture<?> f = entry.getValue();
+			f.cancel(false);
+
 		}
+		mapFuture.clear();
 	}
 
 	private void initEquipmentRunners() {
-		devices = deviceUtil.getDevices(dtuId);
-		futures = new ArrayList<>();
-		int period = getModbusRtuPeriod() * 1000;
+		List<EamEquipment> devices = deviceUtil.getDevices(dtuId);
 		for (EamEquipment d : devices) {
+			int period = getModbusRtuPeriod(d) * 1000;
 			logger.info("Device ID [{}], period [{}]", d.getEquipmentId(), period);
 			ScheduledFuture<?> future = channel.eventLoop().scheduleAtFixedRate(new EquipmentRequestRunner(d), 0,
 					period, TimeUnit.MILLISECONDS);
-			futures.add(future);
+			mapFuture.put(d.getEquipmentId(), future);
 		}
 
 	}
 
-	private int getModbusRtuPeriod(){
+	private int getModbusRtuPeriod(EamEquipment d){
 		int period = 20;
-		EamDtu dtu = deviceUtil.getEamDtu(dtuId);
-		if (dtu != null && dtu.getModbusRtuPeriod() != null){
-			period = dtu.getModbusRtuPeriod();
+		if (d.getModbusRtuPeriod() != null){
+			period = d.getModbusRtuPeriod();
 		}
 		return period;
 	}
@@ -364,14 +393,14 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 
 	private ModbusRequest buildReadCoils(List<EamSensor> sensors) {
 		int address = sensors.get(0).getAddress();
-		int quantity = sensors.get(sensors.size() - 1).getAddress();
+		int quantity = sensors.get(sensors.size() - 1).getAddress() + 1;
 //		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
 		return new ReadCoilsRequest(address, quantity);
 	}
 
 	private ReadDiscreteInputsRequest buildReadDiscreteInputs(List<EamSensor> sensors) {
 		int address = sensors.get(0).getAddress();
-		int quantity = sensors.get(sensors.size() - 1).getAddress();
+		int quantity = sensors.get(sensors.size() - 1).getAddress() + 1;
 //		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
 
 		return new ReadDiscreteInputsRequest(address, quantity);
@@ -379,7 +408,7 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 
 	private ReadHoldingRegistersRequest buildReadHoldingRegisters(List<EamSensor> sensors) {
 		int address = sensors.get(0).getAddress();
-		int quantity = sensors.get(sensors.size() - 1).getAddress();
+		int quantity = sensors.get(sensors.size() - 1).getAddress() + 1;
 //		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
 
 		return new ReadHoldingRegistersRequest(address, quantity);
@@ -387,7 +416,7 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 
 	private ReadInputRegistersRequest buildReadInputRegisters(List<EamSensor> sensors) {
 		int address = sensors.get(0).getAddress();
-		int quantity = sensors.get(sensors.size() - 1).getAddress();
+		int quantity = sensors.get(sensors.size() - 1).getAddress() + 1;
 //		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
 
 		return new ReadInputRegistersRequest(address, quantity);

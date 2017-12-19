@@ -10,11 +10,20 @@
             <outputDirectory>bin</outputDirectory>
             <fileMode>0755</fileMode>
         </fileSet>
+		<fileSet>
+            <directory>src/main/assembly/conf</directory>
+            <outputDirectory>conf</outputDirectory>
+            <fileMode>0644</fileMode>
+        </fileSet>
     </fileSets>
     <dependencySets>
         <dependencySet>
             <outputDirectory>lib</outputDirectory>
             <scope>runtime</scope>
+            <excludes>
+                <!--<exclude>org.jboss.netty:netty</exclude>-->
+                <exclude>io.netty:netty-all</exclude>
+            </excludes>
         </dependencySet>
     </dependencySets>
 </assembly>

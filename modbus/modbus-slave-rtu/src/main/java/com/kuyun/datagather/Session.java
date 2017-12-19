@@ -29,12 +29,17 @@ public interface Session<Req, Res> {
 	 */
 	public boolean startGather();
 
+
+	public boolean startGather(String deviceId);
+
 	/**
 	 * stop gather routine
 	 * 
 	 * @return
 	 */
 	public boolean stopGather();
+
+	public boolean stopGather(String deviceId);
 
 	/**
 	 * send adhoc request.
