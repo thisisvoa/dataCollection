@@ -17,25 +17,36 @@ import java.io.IOException;
 public class ReadDataJob implements Job {
     private static Logger _logger = LoggerFactory.getLogger(ReadDataJob.class);
 
-
     public static final String DEVICE_ID = "DEVICE_ID";
 
-    private GrmUtil grmUtil = SpringContextUtil.getBean(GrmUtil.class);
+    @Autowired
+    private GrmUtil grmUtil = null;
 
     public ReadDataJob(){
     }
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        String deviceId = "";
-        try {
+        buildGrmUtil();
+        if (grmUtil != null){
             JobDataMap data = context.getJobDetail().getJobDataMap();
-            deviceId = data.getString(DEVICE_ID);
+            String deviceId = data.getString(DEVICE_ID);
+            try {
+                grmUtil.readData(deviceId);
+            } catch (IOException e) {
+                _logger.error("GRM Read Data Error : " + e.getMessage());
+                grmUtil.setOffline(deviceId);
+            }
+        }
+    }
 
-            grmUtil.readData(deviceId);
-        } catch (IOException e) {
-            _logger.error("GRM Read Data Error : " + e.getMessage());
-            grmUtil.setOffline(deviceId);
+    private void buildGrmUtil(){
+        if (grmUtil == null){
+            try {
+                grmUtil = SpringContextUtil.getBean(GrmUtil.class);
+            }catch (Exception e){
+                _logger.error("build Grm Util Error : " + e.getMessage());
+            }
         }
     }
 }

@@ -132,7 +132,7 @@
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
             <version>5.1.34</version>
-            <scope>runtime</scope>
+            <!--<scope>runtime</scope>-->
         </dependency>
         <dependency>
             <groupId>com.alibaba</groupId>
