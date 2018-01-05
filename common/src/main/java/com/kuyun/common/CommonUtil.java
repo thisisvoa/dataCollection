@@ -16,7 +16,8 @@ public class CommonUtil {
     private static final Logger logger = LoggerFactory.getLogger(CommonUtil.class);
 
     public static String covertHexTo16Signed(String hexData){
-        return String.valueOf(Integer.parseUnsignedInt(hexData, 16));
+
+        return String.valueOf((short)Integer.parseInt(hexData, 16));
     }
 
     public static String covertHexTo16UnSigned(String hexData){
@@ -24,7 +25,7 @@ public class CommonUtil {
     }
 
     public static String covertHexTo32Signed(String hexData){
-        return String.valueOf(Long.parseUnsignedLong(hexData, 16));
+        return String.valueOf((int)Long.parseLong(hexData, 16));
     }
 
     public static String covertHexTo32UnSigned(String hexData){

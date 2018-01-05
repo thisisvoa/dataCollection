@@ -393,14 +393,14 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 
 	private ModbusRequest buildReadCoils(List<EamSensor> sensors) {
 		int address = sensors.get(0).getAddress();
-		int quantity = sensors.get(sensors.size() - 1).getAddress() + 1;
+		int quantity = (sensors.get(sensors.size() - 1).getAddress() - address)  + 1;
 //		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
 		return new ReadCoilsRequest(address, quantity);
 	}
 
 	private ReadDiscreteInputsRequest buildReadDiscreteInputs(List<EamSensor> sensors) {
 		int address = sensors.get(0).getAddress();
-		int quantity = sensors.get(sensors.size() - 1).getAddress() + 1;
+		int quantity = (sensors.get(sensors.size() - 1).getAddress() - address)  + 1;
 //		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
 
 		return new ReadDiscreteInputsRequest(address, quantity);
@@ -408,7 +408,7 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 
 	private ReadHoldingRegistersRequest buildReadHoldingRegisters(List<EamSensor> sensors) {
 		int address = sensors.get(0).getAddress();
-		int quantity = sensors.get(sensors.size() - 1).getAddress() + 1;
+		int quantity = (sensors.get(sensors.size() - 1).getAddress() - address)  + 1;
 //		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
 
 		return new ReadHoldingRegistersRequest(address, quantity);
@@ -416,7 +416,7 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 
 	private ReadInputRegistersRequest buildReadInputRegisters(List<EamSensor> sensors) {
 		int address = sensors.get(0).getAddress();
-		int quantity = sensors.get(sensors.size() - 1).getAddress() + 1;
+		int quantity = (sensors.get(sensors.size() - 1).getAddress() - address) + 1;
 //		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
 
 		return new ReadInputRegistersRequest(address, quantity);

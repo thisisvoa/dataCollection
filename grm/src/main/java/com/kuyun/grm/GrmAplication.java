@@ -1,5 +1,6 @@
 package com.kuyun.grm;
 
+import com.kuyun.eam.vo.EamGrmEquipmentVariableVO;
 import javafx.util.Pair;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
@@ -8,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
+import java.util.List;
 
 import static org.quartz.JobBuilder.newJob;
 import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
@@ -88,6 +90,11 @@ public class GrmAplication {
 
     private int getPeriod(String deviceId){
         return grmUtil.getGrmPeriod(deviceId);
+    }
+
+
+    public List<EamGrmEquipmentVariableVO> getAllVariable(String deviceId) throws IOException{
+        return grmUtil.getAllVariable(deviceId);
     }
 
 }

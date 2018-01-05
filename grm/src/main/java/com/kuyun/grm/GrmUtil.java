@@ -3,7 +3,7 @@ package com.kuyun.grm;
 import com.kuyun.common.DeviceUtil;
 import com.kuyun.eam.dao.model.EamEquipment;
 import com.kuyun.eam.dao.model.EamSensor;
-import com.kuyun.eam.dao.model.EamSensorData;
+import com.kuyun.eam.vo.EamGrmEquipmentVariableVO;
 import javafx.util.Pair;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -142,11 +142,25 @@ public class GrmUtil {
 
         _logger.info("DeviceId : " + deviceId);
         _logger.info("Write Data : " + requestData);
+        grmApi.cleanSessionId(deviceId);
         String sessionId = grmApi.getSessionId(deviceId);
         _logger.info("sessionId : " + sessionId);
 
         if (!StringUtils.isEmpty(sessionId)){
             result = grmApi.writeData(sessionId, requestData);
+        }
+        return result;
+    }
+
+    public List<EamGrmEquipmentVariableVO> getAllVariable(String deviceId) throws IOException{
+        List<EamGrmEquipmentVariableVO> result = new ArrayList<>();
+        _logger.info("deviceId : " + deviceId);
+        grmApi.cleanSessionId(deviceId);
+        String sessionId = grmApi.getSessionId(deviceId);
+        _logger.info("sessionId : " + sessionId);
+
+        if (!StringUtils.isEmpty(sessionId)){
+            result = grmApi.getAllVariable(sessionId);
         }
         return result;
     }

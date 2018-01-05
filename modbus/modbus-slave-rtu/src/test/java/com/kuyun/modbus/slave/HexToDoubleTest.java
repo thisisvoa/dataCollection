@@ -14,14 +14,11 @@ public class HexToDoubleTest {
 //        System.out.println( "double float hexString is = " + doubleValue );
 
 
-        String myString = "02e9";
-
-
-        int i = Integer.parseInt(myString, 16);
+        String myString = "FFFFFB2E";
+        System.out.println((int)Long.parseLong(myString, 16));
+        long i = Long.parseUnsignedLong(myString, 16);
 
         System.out.println("value="+i);
-        System.out.println("value="+i/10);
-        System.out.println("value="+i%10);
 
     }
 }

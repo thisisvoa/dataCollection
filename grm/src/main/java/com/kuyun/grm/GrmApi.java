@@ -2,6 +2,8 @@ package com.kuyun.grm;
 
 import com.kuyun.common.DeviceUtil;
 import com.kuyun.eam.dao.model.EamEquipment;
+import com.kuyun.eam.dao.model.EamGrmEquipmentVariable;
+import com.kuyun.eam.vo.EamGrmEquipmentVariableVO;
 import com.kuyun.grm.common.Session;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -35,13 +37,16 @@ public class GrmApi {
     DeviceUtil deviceUtil = null;
 
     private static String PATH = "/exlog";
+    private static String R = "R";
+    private static String E = "E";
+    private static String NTRPGC = "NTRPGC";
 
     public String getServerUrl(){
         return SERVER_URL + PATH;
     }
 
-    public String getReadDataServerUrl(String sessionId){
-        return SERVER_URL + "/exdata?OP=R" + "&SID=" + sessionId;
+    public String getServerUrl(String sessionId, String op){
+        return SERVER_URL + "/exdata?OP="+ op + "&SID=" + sessionId;
     }
 
     public String getWriteDataServerUrl(String sessionId){
@@ -73,7 +78,7 @@ public class GrmApi {
         map.remove(deviceId);
     }
 
-    private Session getSessionId(String grm, String password) throws IOException {
+    public Session getSessionId(String grm, String password) throws IOException {
         Session result = new Session();
 
         CloseableHttpClient httpClient = HttpClientBuilder.create().build();
@@ -121,7 +126,7 @@ public class GrmApi {
         String result = new String();
 
         CloseableHttpClient httpClient = HttpClientBuilder.create().build();
-        HttpPost httpPost = new HttpPost(getReadDataServerUrl(sessionId));
+        HttpPost httpPost = new HttpPost(getServerUrl(sessionId, R));
         httpPost.setHeader("Content-Type", "text/plain;charset=UTF-8");
         httpPost.setEntity(new StringEntity(requestData, "UTF-8"));
 
@@ -148,7 +153,7 @@ public class GrmApi {
         String result = new String();
 
         CloseableHttpClient httpClient = HttpClientBuilder.create().build();
-        HttpPost httpPost = new HttpPost(getReadDataServerUrl(sessionId));
+        HttpPost httpPost = new HttpPost(getServerUrl(sessionId, R));
         httpPost.setHeader("Content-Type", "text/plain;charset=UTF-8");
 
         HttpResponse response = httpClient.execute(httpPost);
@@ -212,7 +217,6 @@ public class GrmApi {
     /**
      *
      * @param sessionId
-     * @param data
      * 只有一行，是一个字符串，指定返回的变量信息格式参数。
      * 可以是下面 6 个选项字母的任 意组合：
      *  N 是变量名，返回值为字符串
@@ -224,7 +228,43 @@ public class GrmApi {
      * 如果枚举变量名，类型，读写属性，网络权限（常用的选项）， 内 容 就 是 NTRP 如果枚举变量的所有信息，内容就是 NTRPGC
      * @return
      */
-    public String getAllVariable(String sessionId, String data) throws IOException {
-        return getData(sessionId, data);
+    public List<EamGrmEquipmentVariableVO> getAllVariable(String sessionId) throws IOException {
+        List<EamGrmEquipmentVariableVO> result = new ArrayList<EamGrmEquipmentVariableVO>();
+
+        CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+        HttpPost httpPost = new HttpPost(getServerUrl(sessionId, E));
+        httpPost.setHeader("Content-Type", "text/plain;charset=UTF-8");
+        httpPost.setEntity(new StringEntity(NTRPGC, "UTF-8"));
+
+        HttpResponse response = httpClient.execute(httpPost);
+        int responseCode = response.getStatusLine().getStatusCode();
+        if(responseCode != 200){
+            _logger.error("send GRM message error, the responseCode is " + responseCode);
+            return result;
+        }
+
+        String data = IOUtils.toString(response.getEntity().getContent(), "UTF-8");
+        _logger.info("Session ID : {}, All Variables : {}", sessionId, data);
+        String [] rows = data.split("\r\n");
+        if (rows != null){
+            if ("OK".equalsIgnoreCase(rows[0])){
+                for (int i = 2; i < rows.length; i++){
+                    String row = rows[i];
+                    if (!StringUtils.startsWith(row, "$")){
+                        String[] variable = row.split(",");
+                        if (variable != null && variable.length >= 4){
+                            EamGrmEquipmentVariableVO grmEquipmentVariable = new EamGrmEquipmentVariableVO();
+                            grmEquipmentVariable.setName(variable[0]);
+                            grmEquipmentVariable.setType(variable[1]);
+                            grmEquipmentVariable.setAttribute(variable[2]);
+                            grmEquipmentVariable.setNetworkPermisstion(variable[3]);
+                            result.add(grmEquipmentVariable);
+                        }
+                    }
+                }
+            }
+        }
+
+        return result;
     }
 }

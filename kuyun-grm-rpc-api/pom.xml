@@ -23,5 +23,10 @@
             <artifactId>quartz</artifactId>
             <version>2.2.3</version>
         </dependency>
+        <dependency>
+            <groupId>com.kuyun</groupId>
+            <artifactId>kuyun-eam-dao</artifactId>
+            <version>1.0.0</version>
+        </dependency>
     </dependencies>
 </project>
