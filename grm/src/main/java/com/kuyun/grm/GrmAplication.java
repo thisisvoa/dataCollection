@@ -46,7 +46,6 @@ public class GrmAplication {
     private Pair<JobDetail, SimpleTrigger> buildJobAndTrigger(String deviceId){
         JobDetail job = newJob(ReadDataJob.class).withIdentity(deviceId, deviceId).requestRecovery().build();
         job.getJobDataMap().put(ReadDataJob.DEVICE_ID, deviceId);
-        //job.getJobDataMap().put("grmUtil", grmUtil);
 
         int period = getPeriod(deviceId);
 
