@@ -3,7 +3,7 @@ package com.kuyun.grm;
 import com.kuyun.common.DeviceUtil;
 import com.kuyun.eam.dao.model.EamEquipment;
 import com.kuyun.eam.dao.model.EamSensor;
-import com.kuyun.eam.vo.EamGrmEquipmentVariableVO;
+import com.kuyun.eam.vo.EamGrmVariableVO;
 import javafx.util.Pair;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -152,8 +152,8 @@ public class GrmUtil {
         return result;
     }
 
-    public List<EamGrmEquipmentVariableVO> getAllVariable(String deviceId) throws IOException{
-        List<EamGrmEquipmentVariableVO> result = new ArrayList<>();
+    public List<EamGrmVariableVO> getAllVariable(String deviceId) throws IOException{
+        List<EamGrmVariableVO> result = new ArrayList<>();
         _logger.info("deviceId : " + deviceId);
         grmApi.cleanSessionId(deviceId);
         String sessionId = grmApi.getSessionId(deviceId);

@@ -2,8 +2,7 @@ package com.kuyun.grm;
 
 import com.kuyun.common.DeviceUtil;
 import com.kuyun.eam.dao.model.EamEquipment;
-import com.kuyun.eam.dao.model.EamGrmEquipmentVariable;
-import com.kuyun.eam.vo.EamGrmEquipmentVariableVO;
+import com.kuyun.eam.vo.EamGrmVariableVO;
 import com.kuyun.grm.common.Session;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -228,8 +227,8 @@ public class GrmApi {
      * 如果枚举变量名，类型，读写属性，网络权限（常用的选项）， 内 容 就 是 NTRP 如果枚举变量的所有信息，内容就是 NTRPGC
      * @return
      */
-    public List<EamGrmEquipmentVariableVO> getAllVariable(String sessionId) throws IOException {
-        List<EamGrmEquipmentVariableVO> result = new ArrayList<EamGrmEquipmentVariableVO>();
+    public List<EamGrmVariableVO> getAllVariable(String sessionId) throws IOException {
+        List<EamGrmVariableVO> result = new ArrayList<EamGrmVariableVO>();
 
         CloseableHttpClient httpClient = HttpClientBuilder.create().build();
         HttpPost httpPost = new HttpPost(getServerUrl(sessionId, E));
@@ -253,7 +252,7 @@ public class GrmApi {
                     if (!StringUtils.startsWith(row, "$")){
                         String[] variable = row.split(",");
                         if (variable != null && variable.length >= 4){
-                            EamGrmEquipmentVariableVO grmEquipmentVariable = new EamGrmEquipmentVariableVO();
+                            EamGrmVariableVO grmEquipmentVariable = new EamGrmVariableVO();
                             grmEquipmentVariable.setName(variable[0]);
                             grmEquipmentVariable.setType(variable[1]);
                             grmEquipmentVariable.setAttribute(variable[2]);

@@ -1,7 +1,7 @@
 package com.kuyun.grm;
 
 import cn.jiguang.common.utils.StringUtils;
-import com.kuyun.eam.vo.EamGrmEquipmentVariableVO;
+import com.kuyun.eam.vo.EamGrmVariableVO;
 import com.kuyun.grm.common.Session;
 
 import java.io.IOException;
@@ -22,7 +22,7 @@ public class GrmTest {
             Session session = api.getSessionId(id, password);
 
             if (StringUtils.isNotEmpty(session.getSessionId())){
-                List<EamGrmEquipmentVariableVO> data = api.getAllVariable(session.getSessionId());
+                List<EamGrmVariableVO> data = api.getAllVariable(session.getSessionId());
                 System.out.println(data);
             }
         } catch (IOException e) {

@@ -1,6 +1,6 @@
 package com.kuyun.grm.rpc.service.impl;
 
-import com.kuyun.eam.vo.EamGrmEquipmentVariableVO;
+import com.kuyun.eam.vo.EamGrmVariableVO;
 import com.kuyun.grm.GrmAplication;
 import com.kuyun.grm.rpc.api.GrmApiService;
 import org.quartz.SchedulerException;
@@ -34,7 +34,7 @@ public class GrmServiceImpl implements GrmApiService{
     }
 
     @Override
-    public List<EamGrmEquipmentVariableVO> getAllVariable(String deviceId) throws IOException {
+    public List<EamGrmVariableVO> getAllVariable(String deviceId) throws IOException {
         return grmAplication.getAllVariable(deviceId);
     }
 

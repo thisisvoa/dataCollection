@@ -1,6 +1,6 @@
 package com.kuyun.grm.rpc.api;
 
-import com.kuyun.eam.vo.EamGrmEquipmentVariableVO;
+import com.kuyun.eam.vo.EamGrmVariableVO;
 import org.quartz.SchedulerException;
 
 import java.io.IOException;
@@ -18,6 +18,6 @@ public interface GrmApiService {
     public String [] writeData(final String deviceId, final String requestData) throws IOException;
 
 
-    public List<EamGrmEquipmentVariableVO> getAllVariable(String deviceId) throws IOException;
+    public List<EamGrmVariableVO> getAllVariable(String deviceId) throws IOException;
 
 }

@@ -1,6 +1,6 @@
 package com.kuyun.grm;
 
-import com.kuyun.eam.vo.EamGrmEquipmentVariableVO;
+import com.kuyun.eam.vo.EamGrmVariableVO;
 import javafx.util.Pair;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
@@ -93,7 +93,7 @@ public class GrmAplication {
     }
 
 
-    public List<EamGrmEquipmentVariableVO> getAllVariable(String deviceId) throws IOException{
+    public List<EamGrmVariableVO> getAllVariable(String deviceId) throws IOException{
         return grmUtil.getAllVariable(deviceId);
     }
 
