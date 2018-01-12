@@ -34,8 +34,8 @@ public class GrmServiceImpl implements GrmApiService{
     }
 
     @Override
-    public List<EamGrmVariableVO> getAllVariable(String deviceId) throws IOException {
-        return grmAplication.getAllVariable(deviceId);
+    public List<EamGrmVariableVO> getAllVariable(String productLineId) throws IOException {
+        return grmAplication.getAllVariable(productLineId);
     }
 
 

@@ -152,11 +152,11 @@ public class GrmUtil {
         return result;
     }
 
-    public List<EamGrmVariableVO> getAllVariable(String deviceId) throws IOException{
+    public List<EamGrmVariableVO> getAllVariable(String productLineId) throws IOException{
         List<EamGrmVariableVO> result = new ArrayList<>();
-        _logger.info("deviceId : " + deviceId);
-        grmApi.cleanSessionId(deviceId);
-        String sessionId = grmApi.getSessionId(deviceId);
+        _logger.info("ProductLineId : " + productLineId);
+        grmApi.cleanSessionId(productLineId);
+        String sessionId = grmApi.getSessionId(productLineId);
         _logger.info("sessionId : " + sessionId);
 
         if (!StringUtils.isEmpty(sessionId)){

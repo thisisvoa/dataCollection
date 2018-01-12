@@ -18,6 +18,6 @@ public interface GrmApiService {
     public String [] writeData(final String deviceId, final String requestData) throws IOException;
 
 
-    public List<EamGrmVariableVO> getAllVariable(String deviceId) throws IOException;
+    public List<EamGrmVariableVO> getAllVariable(String productLineId) throws IOException;
 
 }

@@ -93,8 +93,8 @@ public class GrmAplication {
     }
 
 
-    public List<EamGrmVariableVO> getAllVariable(String deviceId) throws IOException{
-        return grmUtil.getAllVariable(deviceId);
+    public List<EamGrmVariableVO> getAllVariable(String productLineId) throws IOException{
+        return grmUtil.getAllVariable(productLineId);
     }
 
 }

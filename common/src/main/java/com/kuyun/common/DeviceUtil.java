@@ -49,6 +49,9 @@ public class DeviceUtil {
 	@Autowired
 	private EamDtuEquipmentService dtuEquipmentService;
 
+	@Autowired
+	private EamProductLineService eamProductLineService;
+
 	Map<String, EamEquipment> deviceMap = new ConcurrentHashMap<>(1000);
 
 	public EamSensorDataService getEamSensorDataService() {
@@ -310,4 +313,7 @@ public class DeviceUtil {
 	}
 
 
+    public EamProductLine getProductLine(String productLineId) {
+		return  eamProductLineService.selectByPrimaryKey(productLineId);
+    }
 }

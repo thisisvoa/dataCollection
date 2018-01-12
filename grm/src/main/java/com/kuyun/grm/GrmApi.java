@@ -2,6 +2,7 @@ package com.kuyun.grm;
 
 import com.kuyun.common.DeviceUtil;
 import com.kuyun.eam.dao.model.EamEquipment;
+import com.kuyun.eam.dao.model.EamProductLine;
 import com.kuyun.eam.vo.EamGrmVariableVO;
 import com.kuyun.grm.common.Session;
 import org.apache.commons.io.IOUtils;
@@ -55,26 +56,26 @@ public class GrmApi {
     private Map<String, String> map = new ConcurrentHashMap<>(1000);
 
 
-    public String getSessionId(String deviceId) throws IOException {
-        String sessionId = map.get(deviceId);
+    public String getSessionId(String productLineId) throws IOException {
+        String sessionId = map.get(productLineId);
         if (StringUtils.isEmpty(sessionId)){
-            EamEquipment device = deviceUtil.getDevice(deviceId);
-            if (device != null){
-                String grm = device.getGrm();
-                String password = device.getGrmPassword();
+            EamProductLine productLine = deviceUtil.getProductLine(productLineId);
+            if (productLine != null){
+                String grm = productLine.getGrm();
+                String password = productLine.getGrmPassword();
 
                 Session session = getSessionId(grm, password);
                 if (!StringUtils.isEmpty(session.getSessionId())){
                     sessionId = session.getSessionId();
-                    map.put(deviceId, sessionId);
+                    map.put(productLineId, sessionId);
                 }
             }
         }
         return sessionId;
     }
 
-    public void cleanSessionId(String deviceId){
-        map.remove(deviceId);
+    public void cleanSessionId(String productLineId){
+        map.remove(productLineId);
     }
 
     public Session getSessionId(String grm, String password) throws IOException {
