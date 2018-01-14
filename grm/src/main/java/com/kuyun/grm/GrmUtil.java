@@ -1,7 +1,8 @@
 package com.kuyun.grm;
 
 import com.kuyun.common.DeviceUtil;
-import com.kuyun.eam.dao.model.EamEquipment;
+import com.kuyun.eam.dao.model.EamGrmVariable;
+import com.kuyun.eam.dao.model.EamProductLine;
 import com.kuyun.eam.dao.model.EamSensor;
 import com.kuyun.eam.vo.EamGrmVariableVO;
 import javafx.util.Pair;
@@ -36,114 +37,105 @@ public class GrmUtil {
 
     private String SUFFIX = "\r\n";
 
-    public void readData(final String deviceId) throws IOException {
-        _logger.info("before deviceId : " + deviceId);
-        String sessionId = grmApi.getSessionId(deviceId);
+
+    public void readData(final String productLineId) throws IOException {
+        _logger.info("ProductLineId : " + productLineId);
+        String sessionId = grmApi.getSessionId(productLineId);
         _logger.info("sessionId : " + sessionId);
 
-        List<EamSensor> sensors = getSensors(deviceId);
+        List<EamGrmVariable> grmVariables = getGrmVariables(productLineId);
 
-        if (sensors != null){
-            String requestData = buildRequestData(sensors);
+        if (grmVariables != null){
+            String requestData = buildRequestData(grmVariables);
 
             _logger.info("Request Data : " + requestData);
 
             if(!StringUtils.isEmpty(sessionId) && !StringUtils.isEmpty(requestData)){
                 String data = grmApi.getData(sessionId, requestData);
                 _logger.info("Response Data : " + data);
-                _logger.info("after deviceId : " + deviceId);
 
-                if (!StringUtils.isEmpty(deviceId)){
+                if (!StringUtils.isEmpty(productLineId)){
                     if (StringUtils.isEmpty(data)){
-                        grmApi.cleanSessionId(deviceId);
+                        grmApi.cleanSessionId(productLineId);
                     }else {
-                        List<Pair<EamSensor, String>> pairs = buildPairData(sensors, data);
+                        List<Pair<EamGrmVariable, String>> pairs = buildPairData(grmVariables, data);
 
-                        persistSensorData(pairs, deviceId);
+                        persistData(pairs, productLineId);
                     }
                 }
             }
         }
     }
 
-    private List<Pair<EamSensor, String>> buildPairData(List<EamSensor> sensors, String data) {
-        List<Pair<EamSensor, String>> result = new ArrayList<Pair<EamSensor, String>>();
+    private List<Pair<EamGrmVariable, String>> buildPairData(List<EamGrmVariable> grmVariables, String data) {
+        List<Pair<EamGrmVariable, String>> result = new ArrayList<Pair<EamGrmVariable, String>>();
         String[] datas = data.split(SUFFIX);
 
         if (OK.equalsIgnoreCase(datas[0])){
-            for (int i = 0; i < sensors.size(); i++) {
-                EamSensor sensor = sensors.get(i);
-                String sensorData = datas[i + 2];
-                Pair pair = new Pair(sensor, sensorData);
+            for (int i = 0; i < grmVariables.size(); i++) {
+                EamGrmVariable variable = grmVariables.get(i);
+                String value = datas[i + 2];
+                Pair pair = new Pair(variable, value);
                 result.add(pair);
             }
         }
         return result;
     }
 
-    private void persistSensorData(List<Pair<EamSensor, String>> pairs, String deviceId){
-        for(Pair<EamSensor, String> pair : pairs){
-            deviceUtil.getEamApiService().processData(deviceId, pair.getKey().getSensorId(), pair.getValue());
-        }
 
+
+
+    private void persistData(List<Pair<EamGrmVariable, String>> pairs, String productLineId){
+        deviceUtil.getEamApiService().processData(pairs);
     }
 
-    private List<EamSensor> getSensors(String deviceId){
-        List<EamSensor> result = null;
-        List<EamSensor> sensors = deviceUtil.getSensors(deviceId);
-
-        if (sensors != null){
-            result = sensors.stream().filter(sensor -> READ.getCode().equalsIgnoreCase(sensor.getGrmAction()))
-                                   .sorted(comparing(EamSensor::getCreateTime)).collect(Collectors.toList());
-        }
-
-        return result;
-
+    private List<EamGrmVariable> getGrmVariables(String productLineId){
+        return deviceUtil.getEamApiService().getGrmVariables(productLineId);
     }
 
-    private String buildRequestData(List<EamSensor> sensors) throws UnsupportedEncodingException {
+    private String buildRequestData(List<EamGrmVariable> grmVariables) throws UnsupportedEncodingException {
         StringBuilder data = new StringBuilder();
-        for(EamSensor sensor : sensors){
-            data.append(sensor.getGrmVariable()).append(SUFFIX);
+        for(EamGrmVariable variable : grmVariables){
+            data.append(variable.getName()).append(SUFFIX);
         }
 
-        data.insert(0, sensors.size() + SUFFIX);
+        data.insert(0, grmVariables.size() + SUFFIX);
 
         return data.substring(0, data.length() - 2);
     }
 
-    public int getGrmPeriod(String deviceId){
-        _logger.info("deviceId="+deviceId);
+    public int getGrmPeriod(String productLineId){
+        _logger.info("productLineId="+productLineId);
         int result = 10;
-        EamEquipment device = deviceUtil.getDevice(deviceId);
-        if (device != null){
-            result = device.getGrmPeriod();
-            _logger.info("deviceId: {}, Grm Period: {}", deviceId, result);
+        EamProductLine productLine = deviceUtil.getProductLine(productLineId);
+        if (productLine != null){
+            result = productLine.getGrmPeriod();
+            _logger.info("ProductLineId: {}, Grm Period: {}", productLineId, result);
         }
         return result;
     }
 
-    public void setOffline(String deviceId){
-        EamEquipment device = deviceUtil.getDevice(deviceId);
-        if (device != null){
-            deviceUtil.setOffline(device);
+    public void setOffline(String productLineId){
+        EamProductLine productLine = deviceUtil.getProductLine(productLineId);
+        if (productLine != null){
+            deviceUtil.setOffline(productLine);
         }
     }
 
-    public void setOnline(String deviceId){
-        EamEquipment device = deviceUtil.getDevice(deviceId);
-        if (device != null){
-            deviceUtil.setOnline(device);
+    public void setOnline(String productLineId){
+        EamProductLine productLine = deviceUtil.getProductLine(productLineId);
+        if (productLine != null){
+            deviceUtil.setOnline(productLine);
         }
     }
 
-    public String [] writeData(final String deviceId, final String requestData) throws IOException {
+    public String [] writeData(final String productLineId, final String requestData) throws IOException {
         String [] result = null;
 
-        _logger.info("DeviceId : " + deviceId);
+        _logger.info("ProductLineId : " + productLineId);
         _logger.info("Write Data : " + requestData);
-        grmApi.cleanSessionId(deviceId);
-        String sessionId = grmApi.getSessionId(deviceId);
+        grmApi.cleanSessionId(productLineId);
+        String sessionId = grmApi.getSessionId(productLineId);
         _logger.info("sessionId : " + sessionId);
 
         if (!StringUtils.isEmpty(sessionId)){

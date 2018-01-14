@@ -17,7 +17,7 @@ import java.io.IOException;
 public class ReadDataJob implements Job {
     private static Logger _logger = LoggerFactory.getLogger(ReadDataJob.class);
 
-    public static final String DEVICE_ID = "DEVICE_ID";
+    public static final String PRODUCT_LINE_ID = "PRODUCT_LINE_ID";
 
     @Autowired
     private GrmUtil grmUtil = null;
@@ -30,12 +30,12 @@ public class ReadDataJob implements Job {
         buildGrmUtil();
         if (grmUtil != null){
             JobDataMap data = context.getJobDetail().getJobDataMap();
-            String deviceId = data.getString(DEVICE_ID);
+            String productLineId = data.getString(PRODUCT_LINE_ID);
             try {
-                grmUtil.readData(deviceId);
+                grmUtil.readData(productLineId);
             } catch (IOException e) {
                 _logger.error("GRM Read Data Error : " + e.getMessage());
-                grmUtil.setOffline(deviceId);
+                grmUtil.setOffline(productLineId);
             }
         }
     }

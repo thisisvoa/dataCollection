@@ -53,6 +53,7 @@ public class DeviceUtil {
 	private EamProductLineService eamProductLineService;
 
 	Map<String, EamEquipment> deviceMap = new ConcurrentHashMap<>(1000);
+	Map<String, EamProductLine> productLineMap = new ConcurrentHashMap<>(1000);
 
 	public EamSensorDataService getEamSensorDataService() {
 		return this.eamSensorDataService;
@@ -76,8 +77,8 @@ public class DeviceUtil {
 		return result;
 	}
 
-	public void remove(String deviceId) {
-		deviceMap.remove(deviceId);
+	public void remove(String productLineId) {
+		productLineMap.remove(productLineId);
 	}
 
 	private EamEquipment getDeviceFromDB(String deviceId) {
@@ -108,6 +109,19 @@ public class DeviceUtil {
 		return result;
 	}
 
+	public void setOffline(EamProductLine productLine) {
+		productLine.setIsOnline(Boolean.FALSE);
+		productLine.setCollectStatus(CollectStatus.NO_START.getCode());
+		updateProductLine(productLine);
+		eamApiService.handleAlarmOffline(productLine.getProductLineId());
+	}
+
+	public void setOnline(EamProductLine productLine) {
+		productLine.setIsOnline(Boolean.TRUE);
+		productLine.setCollectStatus(CollectStatus.WORKING.getCode());
+		updateProductLine(productLine);
+	}
+
 	public void setOffline(EamEquipment device) {
 		device.setIsOnline(Boolean.FALSE);
 		device.setCollectStatus(CollectStatus.NO_START.getCode());
@@ -123,6 +137,11 @@ public class DeviceUtil {
 
 	private void updateDevice(EamEquipment device) {
 		eamEquipmentService.updateByPrimaryKeySelective(device);
+
+	}
+
+	private void updateProductLine(EamProductLine productLine) {
+		eamProductLineService.updateByPrimaryKeySelective(productLine);
 	}
 
 	public boolean isDevice(String deviceId) {
@@ -147,7 +166,7 @@ public class DeviceUtil {
 				String bitOrder = sensor.getBitOrder();
 				String data = CommonUtil.covenrtHexToNumber(startAddress, currentAddress, allData, dataFormat, bitOrder);
 				data = exchangeData(sensor, data);
-				logger.info("DtuId [{}], deviceId [{}], address Id [{}], data [{}]", dtuId, device.getEquipmentId(), sensor.getAddress(), data);
+				logger.info("DtuId [{}], productLineId [{}], address Id [{}], data [{}]", dtuId, device.getEquipmentId(), sensor.getAddress(), data);
 				eamApiService.processData(device.getEquipmentId(), sensor.getSensorId(), data);
 			}
 		}
@@ -223,20 +242,20 @@ public class DeviceUtil {
 		return result;
 	}
 
-	// private EamSensorData buildSensorData(String deviceId, int unitId, String
+	// private EamSensorData buildSensorData(String productLineId, int unitId, String
 	// data) {
 	// EamSensorData result = null;
-	// EamSensor sensor = getSensor(deviceId, unitId);
+	// EamSensor sensor = getSensor(productLineId, unitId);
 	// if (sensor != null) {
-	// result = createSensorData(deviceId, sensor.getSensorId(), data);
+	// result = createSensorData(productLineId, sensor.getSensorId(), data);
 	// }
 	// return result;
 	// }
 
-	// public EamSensorData createSensorData(String deviceId, Integer sensorId,
+	// public EamSensorData createSensorData(String productLineId, Integer sensorId,
 	// String data) {
 	// EamSensorData result = new EamSensorData();
-	// result.setEquipmentId(deviceId);
+	// result.setEquipmentId(productLineId);
 	// result.setSensorId(sensorId);
 	// result.setStringValue(data);
 	// result.setCreateTime(getCurrentDateTime());
@@ -314,6 +333,16 @@ public class DeviceUtil {
 
 
     public EamProductLine getProductLine(String productLineId) {
-		return  eamProductLineService.selectByPrimaryKey(productLineId);
+		EamProductLine result = null;
+
+		if (!productLineMap.containsKey(productLineId)) {
+			result = eamProductLineService.selectByPrimaryKey(productLineId);
+			if (result != null) {
+				productLineMap.put(productLineId, result);
+			}
+		} else {
+			result = productLineMap.get(productLineId);
+		}
+		return result;
     }
 }

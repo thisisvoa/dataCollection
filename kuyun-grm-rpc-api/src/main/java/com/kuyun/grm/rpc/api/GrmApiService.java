@@ -11,11 +11,11 @@ import java.util.List;
  */
 public interface GrmApiService {
 
-    public void startJob(String deviceId) throws SchedulerException;
+    public void startJob(String productLineId) throws SchedulerException;
 
-    public void pauseJob(String deviceId) throws SchedulerException;
+    public void pauseJob(String productLineId) throws SchedulerException;
 
-    public String [] writeData(final String deviceId, final String requestData) throws IOException;
+    public String [] writeData(final String productLineId, final String requestData) throws IOException;
 
 
     public List<EamGrmVariableVO> getAllVariable(String productLineId) throws IOException;

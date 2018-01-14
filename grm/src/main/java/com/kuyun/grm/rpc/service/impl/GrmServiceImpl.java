@@ -19,18 +19,18 @@ public class GrmServiceImpl implements GrmApiService{
 
 
     @Override
-    public void startJob(String deviceId) throws SchedulerException {
-        grmAplication.run(deviceId);
+    public void startJob(String productLineId) throws SchedulerException {
+        grmAplication.run(productLineId);
     }
 
     @Override
-    public void pauseJob(String deviceId) throws SchedulerException {
-        grmAplication.pauseJob(deviceId);
+    public void pauseJob(String productLineId) throws SchedulerException {
+        grmAplication.pauseJob(productLineId);
     }
 
     @Override
-    public String[] writeData(String deviceId, String requestData) throws IOException {
-        return grmAplication.writeData(deviceId, requestData);
+    public String[] writeData(String productLineId, String requestData) throws IOException {
+        return grmAplication.writeData(productLineId, requestData);
     }
 
     @Override

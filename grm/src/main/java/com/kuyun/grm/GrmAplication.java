@@ -43,53 +43,53 @@ public class GrmAplication {
         }
     }
 
-    private Pair<JobDetail, SimpleTrigger> buildJobAndTrigger(String deviceId){
-        JobDetail job = newJob(ReadDataJob.class).withIdentity(deviceId, deviceId).requestRecovery().build();
-        job.getJobDataMap().put(ReadDataJob.DEVICE_ID, deviceId);
+    private Pair<JobDetail, SimpleTrigger> buildJobAndTrigger(String productLineId){
+        JobDetail job = newJob(ReadDataJob.class).withIdentity(productLineId, productLineId).requestRecovery().build();
+        job.getJobDataMap().put(ReadDataJob.PRODUCT_LINE_ID, productLineId);
 
-        int period = getPeriod(deviceId);
+        int period = getPeriod(productLineId);
 
-        SimpleTrigger trigger = newTrigger().withIdentity(deviceId, deviceId).startNow()
+        SimpleTrigger trigger = newTrigger().withIdentity(productLineId, productLineId).startNow()
                 .withSchedule(simpleSchedule().withIntervalInSeconds(period).repeatForever()).build();
 
         return new Pair<JobDetail, SimpleTrigger>(job, trigger);
     }
 
-    public void run(String deviceId) throws SchedulerException {
-        _logger.info("GRM Scheduler Starting for device [{}] : ", deviceId);
-        Pair<JobDetail, SimpleTrigger> pair = buildJobAndTrigger(deviceId);
+    public void run(String productLineId) throws SchedulerException {
+        _logger.info("GRM Scheduler Starting for product line [{}] : ", productLineId);
+        Pair<JobDetail, SimpleTrigger> pair = buildJobAndTrigger(productLineId);
         getScheduler().scheduleJob(pair.getKey(), pair.getValue());
-        grmUtil.setOnline(deviceId);
+        grmUtil.setOnline(productLineId);
     }
 
-    public void pauseJob(String deviceId) throws SchedulerException {
-        _logger.info("GRM Scheduler Stopping for device [{}] : ", deviceId);
-        JobKey jobKey = new JobKey(deviceId, deviceId);
+    public void pauseJob(String productLineId) throws SchedulerException {
+        _logger.info("GRM Scheduler Stopping for product line [{}] : ", productLineId);
+        JobKey jobKey = new JobKey(productLineId, productLineId);
         if (getScheduler().checkExists(jobKey)){
-            getScheduler().unscheduleJob(TriggerKey.triggerKey(deviceId, deviceId));
-            grmUtil.deviceUtil.remove(deviceId);
+            getScheduler().unscheduleJob(TriggerKey.triggerKey(productLineId, productLineId));
+            grmUtil.deviceUtil.remove(productLineId);
 
-            grmUtil.setOffline(deviceId);
-            _logger.info("GRM Scheduler Stopped for device [{}] : ", deviceId);
+            grmUtil.setOffline(productLineId);
+            _logger.info("GRM Scheduler Stopped for product line [{}] : ", productLineId);
         }
     }
 
-    public void resumeJob(String deviceId) throws SchedulerException {
-        JobKey jobKey = new JobKey(deviceId, deviceId);
+    public void resumeJob(String productLineId) throws SchedulerException {
+        JobKey jobKey = new JobKey(productLineId, productLineId);
         getScheduler().resumeJob(jobKey);
     }
 
-    public void deleteJob(String deviceId) throws SchedulerException{
-        JobKey jobKey = new JobKey(deviceId, deviceId);
+    public void deleteJob(String productLineId) throws SchedulerException{
+        JobKey jobKey = new JobKey(productLineId, productLineId);
         getScheduler().deleteJob(jobKey);
     }
 
-    public String [] writeData(final String deviceId, final String requestData) throws IOException{
-        return grmUtil.writeData(deviceId, requestData);
+    public String [] writeData(final String productLineId, final String requestData) throws IOException{
+        return grmUtil.writeData(productLineId, requestData);
     }
 
-    private int getPeriod(String deviceId){
-        return grmUtil.getGrmPeriod(deviceId);
+    private int getPeriod(String productLineId){
+        return grmUtil.getGrmPeriod(productLineId);
     }
 
 
