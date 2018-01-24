@@ -136,11 +136,14 @@ public class DeviceUtil {
 	}
 
 	private void updateDevice(EamEquipment device) {
+		device.setUpdateTime(new Date());
 		eamEquipmentService.updateByPrimaryKeySelective(device);
 
 	}
 
 	private void updateProductLine(EamProductLine productLine) {
+		productLine.setUpdateTime(new Date());
+		productLine.setUpdateUserId(-1);
 		eamProductLineService.updateByPrimaryKeySelective(productLine);
 	}
 
