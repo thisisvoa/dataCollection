@@ -83,28 +83,28 @@ public class DeviceUtil {
 
 	private EamEquipment getDeviceFromDB(String deviceId) {
 		EamEquipment result = eamEquipmentService.selectByPrimaryKey(deviceId);
-		if (result != null) {
-			EamSensorExample sensorExample = new EamSensorExample();
-			List<Integer> propertyIds = getEquipmentModelPropertyIds(result);
-			sensorExample.createCriteria().andEquipmentModelPropertyIdIn(propertyIds)
-					.andDeleteFlagEqualTo(Boolean.FALSE);
-			result.setSensors(eamSensorService.selectByExample(sensorExample));
-		}
+//		if (result != null) {
+//			EamSensorExample sensorExample = new EamSensorExample();
+//			List<Integer> propertyIds = getEquipmentModelPropertyIds(result);
+//			sensorExample.createCriteria().andEquipmentModelPropertyIdIn(propertyIds)
+//					.andDeleteFlagEqualTo(Boolean.FALSE);
+//			result.setSensors(eamSensorService.selectByExample(sensorExample));
+//		}
 		return result;
 	}
 
 	private List<Integer> getEquipmentModelPropertyIds(EamEquipment equipment) {
 		List<Integer> result = new ArrayList<>();
-		if (equipment.getEquipmentModelId() != null) {
-			EamEquipmentModelPropertiesExample example = new EamEquipmentModelPropertiesExample();
-			example.createCriteria().andEquipmentModelIdEqualTo(equipment.getEquipmentModelId())
-					.andDeleteFlagEqualTo(Boolean.FALSE);
-			List<EamEquipmentModelProperties> properties = eamEquipmentModelPropertiesService.selectByExample(example);
-			if (properties != null) {
-				result = properties.stream().map(EamEquipmentModelProperties::getEquipmentModelPropertyId)
-						.collect(Collectors.toList());
-			}
-		}
+//		if (equipment.getEquipmentModelId() != null) {
+//			EamEquipmentModelPropertiesExample example = new EamEquipmentModelPropertiesExample();
+//			example.createCriteria().andEquipmentModelIdEqualTo(equipment.getEquipmentModelId())
+//					.andDeleteFlagEqualTo(Boolean.FALSE);
+//			List<EamEquipmentModelProperties> properties = eamEquipmentModelPropertiesService.selectByExample(example);
+//			if (properties != null) {
+//				result = properties.stream().map(EamEquipmentModelProperties::getEquipmentModelPropertyId)
+//						.collect(Collectors.toList());
+//			}
+//		}
 
 		return result;
 	}
@@ -306,15 +306,15 @@ public class DeviceUtil {
 
 	public EamEquipment getDevice(String dtuId, int slaveId){
 		EamEquipment result = null;
-		List<EamEquipment> devices = getDevices(dtuId);
-		if (!devices.isEmpty()){
-			for (EamEquipment device : devices){
-				if (device.getSalveId() == slaveId){
-					result = device;
-					break;
-				}
-			}
-		}
+//		List<EamEquipment> devices = getDevices(dtuId);
+//		if (!devices.isEmpty()){
+//			for (EamEquipment device : devices){
+//				if (device.getSalveId() == slaveId){
+//					result = device;
+//					break;
+//				}
+//			}
+//		}
 		return result;
 	}
 
