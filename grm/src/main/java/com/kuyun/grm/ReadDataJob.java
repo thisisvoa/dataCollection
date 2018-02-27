@@ -33,6 +33,9 @@ public class ReadDataJob implements Job {
             String deviceId = data.getString(DEVICE_ID);
             try {
                 grmUtil.readData(deviceId);
+                if (grmUtil.isOffline(deviceId)){
+                    grmUtil.setOnline(deviceId);
+                }
             } catch (IOException e) {
                 _logger.error("GRM Read Data Error : " + e.getMessage());
                 grmUtil.setOffline(deviceId);
