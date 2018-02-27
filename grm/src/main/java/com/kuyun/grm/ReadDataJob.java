@@ -33,6 +33,11 @@ public class ReadDataJob implements Job {
             String productLineId = data.getString(PRODUCT_LINE_ID);
             try {
                 grmUtil.readData(productLineId);
+
+                if (grmUtil.isOffline(productLineId)){
+                    grmUtil.setOnline(productLineId);
+                }
+
             } catch (IOException e) {
                 _logger.error("GRM Read Data Error : " + e.getMessage());
                 grmUtil.setOffline(productLineId);

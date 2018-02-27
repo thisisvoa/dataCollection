@@ -129,6 +129,15 @@ public class GrmUtil {
         }
     }
 
+    public boolean isOffline(String productLineId){
+        boolean result = false;
+        EamProductLine productLine = deviceUtil.getProductLine(productLineId);
+        if (productLine != null){
+            result = !productLine.getIsOnline();
+        }
+        return result;
+    }
+
     public String [] writeData(final String productLineId, final String requestData) throws IOException {
         String [] result = null;
 
