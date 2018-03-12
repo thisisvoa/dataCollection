@@ -51,7 +51,7 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 
 	private DeviceUtil deviceUtil;
 
-	private int MAX_ADDRESS_INTERVAL = 5;
+	private int MAX_ADDRESS_INTERVAL = 2;
 
 	private Map<ModbusRtuPayload, List<EamSensor>> map = new HashMap<>();
 
@@ -194,6 +194,7 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 		if (f != null){
 			f.cancel(false);
 			mapFuture.remove(f);
+			deviceUtil.remove(deviceId);
 			EamEquipment d = deviceUtil.getDevice(deviceId);
 			if ( d != null){
 				deviceUtil.setOffline(d);
@@ -393,31 +394,31 @@ public class RtuSession extends AbstractSession<ModbusRtuPayload, ModbusRtuPaylo
 
 	private ModbusRequest buildReadCoils(List<EamSensor> sensors) {
 		int address = sensors.get(0).getAddress();
-		int quantity = (sensors.get(sensors.size() - 1).getAddress() - address)  + 1;
-//		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
+//		int quantity = (sensors.get(sensors.size() - 1).getAddress() - address)  + 1;
+		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
 		return new ReadCoilsRequest(address, quantity);
 	}
 
 	private ReadDiscreteInputsRequest buildReadDiscreteInputs(List<EamSensor> sensors) {
 		int address = sensors.get(0).getAddress();
-		int quantity = (sensors.get(sensors.size() - 1).getAddress() - address)  + 1;
-//		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
+//		int quantity = (sensors.get(sensors.size() - 1).getAddress() - address)  + 1;
+		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
 
 		return new ReadDiscreteInputsRequest(address, quantity);
 	}
 
 	private ReadHoldingRegistersRequest buildReadHoldingRegisters(List<EamSensor> sensors) {
 		int address = sensors.get(0).getAddress();
-		int quantity = (sensors.get(sensors.size() - 1).getAddress() - address)  + 1;
-//		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
+//		int quantity = (sensors.get(sensors.size() - 1).getAddress() - address)  + 1;
+		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
 
 		return new ReadHoldingRegistersRequest(address, quantity);
 	}
 
 	private ReadInputRegistersRequest buildReadInputRegisters(List<EamSensor> sensors) {
 		int address = sensors.get(0).getAddress();
-		int quantity = (sensors.get(sensors.size() - 1).getAddress() - address) + 1;
-//		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
+//		int quantity = (sensors.get(sensors.size() - 1).getAddress() - address) + 1;
+		int quantity = sensors.stream().collect(Collectors.summingInt(s -> s.getQuantity()));
 
 		return new ReadInputRegistersRequest(address, quantity);
 	}
