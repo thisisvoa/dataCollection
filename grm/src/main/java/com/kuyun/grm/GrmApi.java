@@ -1,7 +1,6 @@
 package com.kuyun.grm;
 
 import com.kuyun.common.DeviceUtil;
-import com.kuyun.eam.dao.model.EamEquipment;
 import com.kuyun.eam.dao.model.EamProductLine;
 import com.kuyun.eam.vo.EamGrmVariableVO;
 import com.kuyun.grm.common.Session;
@@ -45,40 +44,39 @@ public class GrmApi {
         return SERVER_URL + PATH;
     }
 
-    public String getServerUrl(String sessionId, String op){
-        return SERVER_URL + "/exdata?OP="+ op + "&SID=" + sessionId;
+    public String getServerUrl(Session session, String op){
+        return "http://" + session.getAddress() + "/exdata?OP="+ op + "&SID=" + session.getSessionId();
     }
 
-    public String getWriteDataServerUrl(String sessionId){
-        return SERVER_URL + "/exdata?OP=W" + "&SID=" + sessionId;
+    public String getWriteDataServerUrl(Session session){
+        return "http://" + session.getAddress() + "/exdata?OP=W" + "&SID=" + session.getSessionId();
     }
 
-    private Map<String, String> map = new ConcurrentHashMap<>(1000);
+    private Map<String, Session> map = new ConcurrentHashMap<>(1000);
 
 
-    public String getSessionId(String productLineId) throws IOException {
-        String sessionId = map.get(productLineId);
-        if (StringUtils.isEmpty(sessionId)){
+    public Session getSession(String productLineId) throws IOException {
+        Session session = map.get(productLineId);
+        if (session == null){
             EamProductLine productLine = deviceUtil.getProductLine(productLineId);
             if (productLine != null){
                 String grm = productLine.getGrm();
                 String password = productLine.getGrmPassword();
 
-                Session session = getSessionId(grm, password);
+                session = getSession(grm, password);
                 if (!StringUtils.isEmpty(session.getSessionId())){
-                    sessionId = session.getSessionId();
-                    map.put(productLineId, sessionId);
+                    map.put(productLineId, session);
                 }
             }
         }
-        return sessionId;
+        return session;
     }
 
-    public void cleanSessionId(String productLineId){
+    public void cleanSession(String productLineId){
         map.remove(productLineId);
     }
 
-    public Session getSessionId(String grm, String password) throws IOException {
+    public Session getSession(String grm, String password) throws IOException {
         Session result = new Session();
 
         CloseableHttpClient httpClient = HttpClientBuilder.create().build();
@@ -102,7 +100,7 @@ public class GrmApi {
         String [] rows = data.split("\r\n");
         if (rows != null && rows.length == 3){
             if ("OK".equalsIgnoreCase(rows[0])){
-                result.setAddress(rows[1]);
+                result.setAddress(rows[1].substring(5));
                 result.setSessionId(rows[2].substring(4));
             }
         }
@@ -117,16 +115,15 @@ public class GrmApi {
      * 变 量名 1
      * 变 量名 2
      * 变 量名 3
-     * @param sessionId
      * @param requestData
      * @return
      */
 
-    public String getData(String sessionId, String requestData) throws IOException {
+    public String getData(Session session, String requestData) throws IOException {
         String result = new String();
 
         CloseableHttpClient httpClient = HttpClientBuilder.create().build();
-        HttpPost httpPost = new HttpPost(getServerUrl(sessionId, R));
+        HttpPost httpPost = new HttpPost(getServerUrl(session, R));
         httpPost.setHeader("Content-Type", "text/plain;charset=UTF-8");
         httpPost.setEntity(new StringEntity(requestData, "UTF-8"));
 
@@ -139,6 +136,8 @@ public class GrmApi {
 
         String data = IOUtils.toString(response.getEntity().getContent());
 
+        _logger.info("Response Content: " + data);
+
         String [] rows = data.split("\r\n");
         if (rows != null){
             if ("OK".equalsIgnoreCase(rows[0])){
@@ -149,11 +148,11 @@ public class GrmApi {
         return result;
     }
 
-    public String getRepeatData(String sessionId) throws IOException {
+    public String getRepeatData(Session session) throws IOException {
         String result = new String();
 
         CloseableHttpClient httpClient = HttpClientBuilder.create().build();
-        HttpPost httpPost = new HttpPost(getServerUrl(sessionId, R));
+        HttpPost httpPost = new HttpPost(getServerUrl(session, R));
         httpPost.setHeader("Content-Type", "text/plain;charset=UTF-8");
 
         HttpResponse response = httpClient.execute(httpPost);
@@ -177,7 +176,6 @@ public class GrmApi {
 
     /**
      *
-     * @param sessionId
      * @param requestData : 第一行是变量个数，以后每一行依次是第一个变量名，第一个变量值，第二个变量名，第 二个变量值……
      *                    2
      *                    变 量名 1
@@ -187,11 +185,11 @@ public class GrmApi {
      * @return
      * @throws IOException
      */
-    public String [] writeData(String sessionId, String requestData) throws IOException {
+    public String [] writeData(Session session, String requestData) throws IOException {
         String [] result = null;
 
         CloseableHttpClient httpClient = HttpClientBuilder.create().build();
-        HttpPost httpPost = new HttpPost(getWriteDataServerUrl(sessionId));
+        HttpPost httpPost = new HttpPost(getWriteDataServerUrl(session));
         httpPost.setHeader("Content-Type", "text/plain;charset=UTF-8");
         httpPost.setEntity(new StringEntity(requestData));
 
@@ -216,7 +214,6 @@ public class GrmApi {
 
     /**
      *
-     * @param sessionId
      * 只有一行，是一个字符串，指定返回的变量信息格式参数。
      * 可以是下面 6 个选项字母的任 意组合：
      *  N 是变量名，返回值为字符串
@@ -228,11 +225,11 @@ public class GrmApi {
      * 如果枚举变量名，类型，读写属性，网络权限（常用的选项）， 内 容 就 是 NTRP 如果枚举变量的所有信息，内容就是 NTRPGC
      * @return
      */
-    public List<EamGrmVariableVO> getAllVariable(String sessionId) throws IOException {
+    public List<EamGrmVariableVO> getAllVariable(Session session) throws IOException {
         List<EamGrmVariableVO> result = new ArrayList<EamGrmVariableVO>();
 
         CloseableHttpClient httpClient = HttpClientBuilder.create().build();
-        HttpPost httpPost = new HttpPost(getServerUrl(sessionId, E));
+        HttpPost httpPost = new HttpPost(getServerUrl(session, E));
         httpPost.setHeader("Content-Type", "text/plain;charset=UTF-8");
         httpPost.setEntity(new StringEntity(NTRPGC, "UTF-8"));
 
@@ -244,7 +241,7 @@ public class GrmApi {
         }
 
         String data = IOUtils.toString(response.getEntity().getContent(), "UTF-8");
-        _logger.info("Session ID : {}, All Variables : {}", sessionId, data);
+        _logger.info("Session ID : {}, All Variables : {}", session.getSessionId(), data);
         String [] rows = data.split("\r\n");
         if (rows != null){
             if ("OK".equalsIgnoreCase(rows[0])){

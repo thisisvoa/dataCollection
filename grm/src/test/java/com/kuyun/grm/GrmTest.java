@@ -13,16 +13,16 @@ import java.util.List;
 public class GrmTest {
 
     public static void main(String[] args) {
-        String id = "50106082654";
+        String id = "53900082434";
         String password = "cs123456";
 
         GrmApi api = new GrmApi();
 
         try {
-            Session session = api.getSessionId(id, password);
+            Session session = api.getSession(id, password);
 
             if (StringUtils.isNotEmpty(session.getSessionId())){
-                List<EamGrmVariableVO> data = api.getAllVariable(session.getSessionId());
+                List<EamGrmVariableVO> data = api.getAllVariable(session);
                 System.out.println(data);
             }
         } catch (IOException e) {

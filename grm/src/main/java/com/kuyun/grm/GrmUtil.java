@@ -3,8 +3,8 @@ package com.kuyun.grm;
 import com.kuyun.common.DeviceUtil;
 import com.kuyun.eam.dao.model.EamGrmVariable;
 import com.kuyun.eam.dao.model.EamProductLine;
-import com.kuyun.eam.dao.model.EamSensor;
 import com.kuyun.eam.vo.EamGrmVariableVO;
+import com.kuyun.grm.common.Session;
 import javafx.util.Pair;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -16,9 +16,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import static com.kuyun.grm.common.Action.READ;
 import static com.kuyun.grm.common.Constant.OK;
 import static java.util.Comparator.comparing;
 
@@ -40,27 +38,29 @@ public class GrmUtil {
 
     public void readData(final String productLineId) throws IOException {
         _logger.info("ProductLineId : " + productLineId);
-        String sessionId = grmApi.getSessionId(productLineId);
-        _logger.info("sessionId : " + sessionId);
+        Session session = grmApi.getSession(productLineId);
+        if (StringUtils.isNotEmpty(session.getSessionId())){
+            _logger.info("sessionId : " + session.getSessionId());
 
-        List<EamGrmVariable> grmVariables = getGrmVariables(productLineId);
+            List<EamGrmVariable> grmVariables = getGrmVariables(productLineId);
 
-        if (grmVariables != null){
-            String requestData = buildRequestData(grmVariables);
+            if (grmVariables != null){
+                String requestData = buildRequestData(grmVariables);
 
-            _logger.info("Request Data : " + requestData);
+                _logger.info("Request Data : " + requestData);
 
-            if(!StringUtils.isEmpty(sessionId) && !StringUtils.isEmpty(requestData)){
-                String data = grmApi.getData(sessionId, requestData);
-                _logger.info("Response Data : " + data);
+                if(!StringUtils.isEmpty(requestData)){
+                    String data = grmApi.getData(session, requestData);
+                    _logger.info("Response Data : " + data);
 
-                if (!StringUtils.isEmpty(productLineId)){
-                    if (StringUtils.isEmpty(data)){
-                        grmApi.cleanSessionId(productLineId);
-                    }else {
-                        List<Pair<EamGrmVariable, String>> pairs = buildPairData(grmVariables, data);
+                    if (!StringUtils.isEmpty(productLineId)){
+                        if (StringUtils.isEmpty(data)){
+                            grmApi.cleanSession(productLineId);
+                        }else {
+                            List<Pair<EamGrmVariable, String>> pairs = buildPairData(grmVariables, data);
 
-                        persistData(pairs, productLineId);
+                            persistData(pairs, productLineId);
+                        }
                     }
                 }
             }
@@ -143,25 +143,26 @@ public class GrmUtil {
 
         _logger.info("ProductLineId : " + productLineId);
         _logger.info("Write Data : " + requestData);
-        grmApi.cleanSessionId(productLineId);
-        String sessionId = grmApi.getSessionId(productLineId);
-        _logger.info("sessionId : " + sessionId);
+        grmApi.cleanSession(productLineId);
+        Session session = grmApi.getSession(productLineId);
+        _logger.info("sessionId : " + session.getSessionId());
 
-        if (!StringUtils.isEmpty(sessionId)){
-            result = grmApi.writeData(sessionId, requestData);
+        if (!StringUtils.isEmpty(session.getSessionId())){
+            result = grmApi.writeData(session, requestData);
         }
+
         return result;
     }
 
     public List<EamGrmVariableVO> getAllVariable(String productLineId) throws IOException{
         List<EamGrmVariableVO> result = new ArrayList<>();
         _logger.info("ProductLineId : " + productLineId);
-        grmApi.cleanSessionId(productLineId);
-        String sessionId = grmApi.getSessionId(productLineId);
-        _logger.info("sessionId : " + sessionId);
+        grmApi.cleanSession(productLineId);
+        Session session = grmApi.getSession(productLineId);
+        _logger.info("sessionId : " + session.getSessionId());
 
-        if (!StringUtils.isEmpty(sessionId)){
-            result = grmApi.getAllVariable(sessionId);
+        if (!StringUtils.isEmpty(session.getSessionId())){
+            result = grmApi.getAllVariable(session);
         }
         return result;
     }
